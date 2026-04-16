@@ -1,0 +1,24 @@
+# diff_drive_controller handles:
+#   - /cmd_vel subscription (geometry_msgs/Twist)
+#   - /odom publication (nav_msgs/Odometry)
+#   - /tf odom -> base_link transform
+#   - /joint_states publication (sensor_msgs/JointState)
+#
+# Wheel geometry can be overridden at launch time via roslaunch args.
+diff_drive_controller:
+  type: diff_drive_controller/DiffDriveController
+  left_wheel:  left_wheel
+  right_wheel: right_wheel
+  publish_rate: 50.0
+
+  # Physical dimensions — override these at launch for your specific robot
+  wheel_separation: 0.15   # meters, center-to-center distance between wheels
+  wheel_radius:     0.033  # meters
+
+  # Stop the robot if no /cmd_vel is received for this many seconds
+  cmd_vel_timeout: 0.5
+
+  # Diagonal covariance entries for odometry (x, y, z, roll, pitch, yaw)
+  # Large values for z/roll/pitch since this is a planar robot
+  pose_covariance_diagonal:  [0.001, 0.001, 1.0e6, 1.0e6, 1.0e6, 0.03]
+  twist_covariance_diagonal: [0.001, 0.001, 1.0e6, 1.0e6, 1.0e6, 0.03]

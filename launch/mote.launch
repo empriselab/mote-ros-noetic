@@ -1,0 +1,30 @@
+<launch>
+  <!-- Required: IP address of the mote robot -->
+  <arg name="robot_ip" />
+
+  <!-- Wheel geometry — must match controllers.yaml if overriding -->
+  <arg name="wheel_separation" default="0.15" />
+  <arg name="wheel_radius"     default="0.033" />
+
+  <!-- TF frame IDs -->
+  <arg name="laser_frame" default="laser" />
+  <arg name="imu_frame"   default="imu_link" />
+
+  <!-- Load controller configuration -->
+  <rosparam file="$(find mote_ros_noetic)/config/controllers.yaml" command="load" />
+
+  <!-- Apply wheel geometry overrides on top of the YAML defaults -->
+  <param name="diff_drive_controller/wheel_separation" value="$(arg wheel_separation)" />
+  <param name="diff_drive_controller/wheel_radius"     value="$(arg wheel_radius)" />
+
+  <!-- Hardware interface node -->
+  <node pkg="mote_ros_noetic" type="mote_node" name="mote_node" output="screen">
+    <param name="robot_ip"    value="$(arg robot_ip)" />
+    <param name="laser_frame" value="$(arg laser_frame)" />
+    <param name="imu_frame"   value="$(arg imu_frame)" />
+  </node>
+
+  <!-- Spawn the diff_drive_controller via controller_manager -->
+  <node pkg="controller_manager" type="spawner" name="controller_spawner"
+        args="diff_drive_controller" output="screen" />
+</launch>
