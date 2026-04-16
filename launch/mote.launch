@@ -10,6 +10,16 @@
   <arg name="laser_frame" default="laser" />
   <arg name="imu_frame"   default="imu_link" />
 
+  <!-- Sensor positions relative to base_link (meters / radians).
+       Adjust these to match your robot's physical layout. -->
+  <arg name="laser_x"   default="0.0" />
+  <arg name="laser_y"   default="0.0" />
+  <arg name="laser_z"   default="0.1" />
+  <arg name="laser_yaw" default="0.0" />
+  <arg name="imu_x"     default="0.0" />
+  <arg name="imu_y"     default="0.0" />
+  <arg name="imu_z"     default="0.0" />
+
   <!-- Load controller configuration -->
   <rosparam file="$(find mote_ros_noetic)/config/controllers.yaml" command="load" />
 
@@ -27,4 +37,13 @@
   <!-- Spawn the diff_drive_controller via controller_manager -->
   <node pkg="controller_manager" type="spawner" name="controller_spawner"
         args="diff_drive_controller" output="screen" />
+
+  <!-- Static transforms: sensor frames relative to base_link -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="laser_tf"
+        args="$(arg laser_x) $(arg laser_y) $(arg laser_z) $(arg laser_yaw) 0 0 base_link $(arg laser_frame)" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="imu_tf"
+        args="$(arg imu_x) $(arg imu_y) $(arg imu_z) 0 0 0 base_link $(arg imu_frame)" />
+
+  <!-- Foxglove Bridge — connect Foxglove Studio to ws://<host>:8765 -->
+  <node pkg="foxglove_bridge" type="foxglove_bridge" name="foxglove_bridge" output="screen" />
 </launch>
