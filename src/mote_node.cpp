@@ -30,7 +30,7 @@ extern "C" {
 using json = nlohmann::json;
 
 namespace {
-constexpr int SCAN_BINS = 720;
+constexpr int   SCAN_BINS      = 360;
 constexpr float SCAN_ANGLE_INC = 2.0f * static_cast<float>(M_PI) / SCAN_BINS;
 constexpr int UDP_PORT = 7475;
 constexpr int UDP_BUF_SIZE = 65536;
@@ -135,9 +135,11 @@ public:
       if (n == 0)
         break;
       if (n < 0) {
-        ROS_WARN_THROTTLE(
-            5.0, "mote_node: mote_link_poll_receive error (buffer too small?)");
-        break;
+        // Corrupt or undeserializable frame — already consumed from the queue.
+        // Continue draining rather than dropping all subsequent messages.
+        ROS_WARN_THROTTLE(5.0,
+                          "mote_node: dropping corrupt frame from mote_link");
+        continue;
       }
       try {
         dispatch(json::parse(buf.data()), time);
@@ -194,6 +196,11 @@ private:
   ros::Timer keepalive_timer_;
   std::string laser_frame_;
   std::string imu_frame_;
+
+  struct RawScanPoint { float angle_rad; float distance_mm; };
+  std::vector<RawScanPoint> scan_accum_;
+  ros::Time                 scan_accum_stamp_;
+  float                     scan_prev_angle_ = -1.0f;  // -1 = no previous point
 
   // Drain all pending transmit packets from the link and send over UDP.
   // Must be called with link_mutex_ held.
@@ -281,41 +288,55 @@ private:
     eff_[1] = state["right"]["effort_percent"].get<double>();
   }
 
-  // Rasterize a LiDAR scan onto a fixed 0.5° angle grid and publish as
-  // LaserScan.
+  // Accumulate raw scan points and publish one LaserScan per full rotation.
+  // A rotation boundary is detected when the incoming angle wraps back to near
+  // 0 — i.e. drops by more than π from the previous point's angle.
   void publish_scan(const json &points, const ros::Time &stamp) {
-    sensor_msgs::LaserScan msg;
-    msg.header.stamp = stamp;
-    msg.header.frame_id = laser_frame_;
-    msg.angle_min = 0.0f;
-    msg.angle_max = 2.0f * static_cast<float>(M_PI) - SCAN_ANGLE_INC;
-    msg.angle_increment = SCAN_ANGLE_INC;
-    msg.range_min = 0.05f; // 5 cm
-    msg.range_max = 12.0f; // 12 m (RPLiDAR C1 max range)
-    msg.ranges.assign(SCAN_BINS, std::numeric_limits<float>::infinity());
-
     const float two_pi = 2.0f * static_cast<float>(M_PI);
+
     for (const auto &pt : points) {
       if (pt["quality"].get<int>() == 0)
         continue;
 
-      float angle = pt["angle_rad"].get<float>();
-      float dist_m = pt["distance_mm"].get<float>() / 1000.0f;
+      float angle = std::fmod(pt["angle_rad"].get<float>(), two_pi);
+      if (angle < 0.0f) angle += two_pi;
 
-      // Normalize angle to [0, 2π)
-      angle = std::fmod(angle, two_pi);
-      if (angle < 0.0f)
-        angle += two_pi;
+      // A drop of more than π signals the start of a new rotation.
+      if (scan_prev_angle_ >= 0.0f && angle < scan_prev_angle_ - static_cast<float>(M_PI))
+        flush_scan(stamp);
 
-      int bin = static_cast<int>(angle / SCAN_ANGLE_INC);
+      if (scan_accum_.empty())
+        scan_accum_stamp_ = stamp;
+
+      scan_accum_.push_back({angle, pt["distance_mm"].get<float>()});
+      scan_prev_angle_ = angle;
+    }
+  }
+
+  // Rasterize all accumulated points onto a fixed 1° grid and publish.
+  void flush_scan(const ros::Time & /*stamp*/) {
+    if (scan_accum_.empty()) return;
+
+    sensor_msgs::LaserScan msg;
+    msg.header.stamp    = scan_accum_stamp_;
+    msg.header.frame_id = laser_frame_;
+    msg.angle_min       = 0.0f;
+    msg.angle_max       = 2.0f * static_cast<float>(M_PI) - SCAN_ANGLE_INC;
+    msg.angle_increment = SCAN_ANGLE_INC;
+    msg.range_min       = 0.05f;  // 5 cm
+    msg.range_max       = 12.0f;  // 12 m (RPLiDAR C1 max range)
+    msg.ranges.assign(SCAN_BINS, std::numeric_limits<float>::infinity());
+
+    for (const auto &pt : scan_accum_) {
+      int bin = static_cast<int>(pt.angle_rad / SCAN_ANGLE_INC);
       bin = std::max(0, std::min(bin, SCAN_BINS - 1));
-
-      // Keep the closest return per bin (conservative for obstacle avoidance)
+      float dist_m = pt.distance_mm / 1000.0f;
       if (dist_m < msg.ranges[bin])
         msg.ranges[bin] = dist_m;
     }
 
     scan_pub_.publish(msg);
+    scan_accum_.clear();
   }
 
   // Publish an IMU message. Orientation is unknown (covariance[0] = -1 per

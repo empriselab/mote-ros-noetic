@@ -2,8 +2,8 @@
 <package format="2">
   <name>mote_ros_noetic</name>
   <version>0.1.0</version>
-  <description>ROS Noetic driver for the Mote mobile robot. Publishes LiDAR, IMU, and wheel state; accepts velocity commands via ros_control.</description>
-  <maintainer email="micacer48@gmail.com">mote</maintainer>
+  <description>ROS Noetic driver for the Mote mobile robot.</description>
+  <maintainer email="michael@michael-crum.com">Mote Contributors</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
@@ -14,6 +14,6 @@
   <depend>hardware_interface</depend>
   <depend>controller_manager</depend>
   <depend>diff_drive_controller</depend>
-
-  <build_depend>nlohmann-json3-dev</build_depend>
+  <exec_depend>foxglove_bridge</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
 </package>
