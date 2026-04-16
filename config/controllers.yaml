@@ -7,8 +7,8 @@
 # Wheel geometry can be overridden at launch time via roslaunch args.
 diff_drive_controller:
   type: diff_drive_controller/DiffDriveController
-  left_wheel:  left_wheel
-  right_wheel: right_wheel
+  left_wheel:  ['left_wheel']
+  right_wheel: ['right_wheel']
   publish_rate: 50.0
 
   # Physical dimensions — override these at launch for your specific robot
@@ -20,5 +20,5 @@ diff_drive_controller:
 
   # Diagonal covariance entries for odometry (x, y, z, roll, pitch, yaw)
   # Large values for z/roll/pitch since this is a planar robot
-  pose_covariance_diagonal:  [0.001, 0.001, 1.0e6, 1.0e6, 1.0e6, 0.03]
-  twist_covariance_diagonal: [0.001, 0.001, 1.0e6, 1.0e6, 1.0e6, 0.03]
+  pose_covariance_diagonal:  [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 0.03]
+  twist_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 0.03]

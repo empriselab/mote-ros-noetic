@@ -8,6 +8,8 @@ services:
     environment:
       # Required
       ROBOT_IP: ${ROBOT_IP}
+      # Flush Python (roslaunch/spawner) stdout immediately so docker logs shows output
+      PYTHONUNBUFFERED: "1"
       # Optional overrides (leave unset to use defaults from controllers.yaml / launch file)
       # WHEEL_SEPARATION: "0.15"
       # WHEEL_RADIUS: "0.033"
