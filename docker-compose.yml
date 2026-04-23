@@ -4,7 +4,9 @@ services:
       context: ..           # repo root, so both mote-core/ and mote-ros-noetic/ are accessible
       dockerfile: mote-ros-noetic/Dockerfile
     image: mote-ros-noetic
-    network_mode: host      # required for UDP communication on the local network
+    ports:
+      - "8765:8765"   # Foxglove Bridge WebSocket (connect Foxglove Studio to ws://<host>:8765)
+      - "11311:11311" # ROS Master URI (allows host-side ros CLI tools to connect)
     environment:
       # Required
       ROBOT_IP: ${ROBOT_IP}
