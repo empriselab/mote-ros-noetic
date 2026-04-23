@@ -3,7 +3,7 @@ set -e
 
 if [ -z "$ROBOT_IP" ]; then
     echo "Error: ROBOT_IP environment variable is required."
-    echo "Usage: docker run --network=host -e ROBOT_IP=192.168.x.x mote-ros-noetic"
+    echo "Usage: docker run -e ROBOT_IP=192.168.x.x mote-ros-noetic"
     exit 1
 fi
 

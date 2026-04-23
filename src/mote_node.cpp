@@ -30,7 +30,7 @@ extern "C" {
 using json = nlohmann::json;
 
 namespace {
-constexpr int   SCAN_BINS      = 360;
+constexpr int SCAN_BINS = 360;
 constexpr float SCAN_ANGLE_INC = 2.0f * static_cast<float>(M_PI) / SCAN_BINS;
 constexpr int UDP_PORT = 7475;
 constexpr int UDP_BUF_SIZE = 65536;
@@ -197,10 +197,13 @@ private:
   std::string laser_frame_;
   std::string imu_frame_;
 
-  struct RawScanPoint { float angle_rad; float distance_mm; };
+  struct RawScanPoint {
+    float angle_rad;
+    float distance_mm;
+  };
   std::vector<RawScanPoint> scan_accum_;
-  ros::Time                 scan_accum_stamp_;
-  float                     scan_prev_angle_ = -1.0f;  // -1 = no previous point
+  ros::Time scan_accum_stamp_;
+  float scan_prev_angle_ = -1.0f; // -1 = no previous point
 
   // Drain all pending transmit packets from the link and send over UDP.
   // Must be called with link_mutex_ held.
@@ -299,10 +302,12 @@ private:
         continue;
 
       float angle = std::fmod(pt["angle_rad"].get<float>(), two_pi);
-      if (angle < 0.0f) angle += two_pi;
+      if (angle < 0.0f)
+        angle += two_pi;
 
       // A drop of more than π signals the start of a new rotation.
-      if (scan_prev_angle_ >= 0.0f && angle < scan_prev_angle_ - static_cast<float>(M_PI))
+      if (scan_prev_angle_ >= 0.0f &&
+          angle < scan_prev_angle_ - static_cast<float>(M_PI))
         flush_scan(stamp);
 
       if (scan_accum_.empty())
@@ -315,16 +320,17 @@ private:
 
   // Rasterize all accumulated points onto a fixed 1° grid and publish.
   void flush_scan(const ros::Time & /*stamp*/) {
-    if (scan_accum_.empty()) return;
+    if (scan_accum_.empty())
+      return;
 
     sensor_msgs::LaserScan msg;
-    msg.header.stamp    = scan_accum_stamp_;
+    msg.header.stamp = scan_accum_stamp_;
     msg.header.frame_id = laser_frame_;
-    msg.angle_min       = 0.0f;
-    msg.angle_max       = 2.0f * static_cast<float>(M_PI) - SCAN_ANGLE_INC;
+    msg.angle_min = 0.0f;
+    msg.angle_max = 2.0f * static_cast<float>(M_PI) - SCAN_ANGLE_INC;
     msg.angle_increment = SCAN_ANGLE_INC;
-    msg.range_min       = 0.05f;  // 5 cm
-    msg.range_max       = 12.0f;  // 12 m (RPLiDAR C1 max range)
+    msg.range_min = 0.05f; // 5 cm
+    msg.range_max = 12.0f; // 12 m (RPLiDAR C1 max range)
     msg.ranges.assign(SCAN_BINS, std::numeric_limits<float>::infinity());
 
     for (const auto &pt : scan_accum_) {
