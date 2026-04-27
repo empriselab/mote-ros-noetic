@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<!-- Mote robot URDF
+     Wheel geometry: separation=0.15 m, radius=0.033 m
+     Joint names match mote_control/config/control.yaml (left_wheel, right_wheel)
+     Sensor frame names match mote_base/launch/mote.launch (laser, imu_link)
+
+     NOTE: Visual geometry uses simple primitives as placeholders.
+     Replace with mote-specific mesh files once available. -->
+<robot name="mote">
+
+  <!-- ======================== Base ======================== -->
+  <link name="base_link"/>
+
+  <joint name="base_link_to_chassis" type="fixed">
+    <parent link="base_link"/>
+    <child link="chassis"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="chassis">
+    <visual>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.15 0.12 0.06"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.15 0.12 0.06"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <mass value="0.5"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <!-- ======================== Left wheel ======================== -->
+  <!-- joint name must match left_wheel entry in control.yaml -->
+  <joint name="left_wheel" type="continuous">
+    <parent link="chassis"/>
+    <child link="left_wheel_link"/>
+    <!-- y = +wheel_separation/2 = +0.075 m, z = wheel_radius = 0.033 m -->
+    <origin xyz="0 0.075 0.033" rpy="-1.5707963267948966 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1" velocity="20"/>
+  </joint>
+
+  <link name="left_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.033" length="0.025"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="0.98 0.71 0.004 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.033" length="0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.06"/>
+      <inertia ixx="2.3e-5" ixy="0" ixz="0" iyy="2.3e-5" iyz="0" izz="3.8e-5"/>
+    </inertial>
+  </link>
+
+  <!-- ======================== Right wheel ======================== -->
+  <!-- joint name must match right_wheel entry in control.yaml -->
+  <joint name="right_wheel" type="continuous">
+    <parent link="chassis"/>
+    <child link="right_wheel_link"/>
+    <!-- y = -wheel_separation/2 = -0.075 m, z = wheel_radius = 0.033 m -->
+    <origin xyz="0 -0.075 0.033" rpy="-1.5707963267948966 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1" velocity="20"/>
+  </joint>
+
+  <link name="right_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.033" length="0.025"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="0.98 0.71 0.004 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.033" length="0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.06"/>
+      <inertia ixx="2.3e-5" ixy="0" ixz="0" iyy="2.3e-5" iyz="0" izz="3.8e-5"/>
+    </inertial>
+  </link>
+
+  <!-- ======================== Laser sensor frame ======================== -->
+  <!-- frame name matches laser_frame arg default in mote_base/launch/mote.launch -->
+  <joint name="laser_frame" type="fixed">
+    <parent link="chassis"/>
+    <child link="laser"/>
+    <origin xyz="0.0 0.0 0.1" rpy="0 0 0"/>
+  </joint>
+
+  <link name="laser">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-9"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+  </link>
+
+  <!-- ======================== IMU sensor frame ======================== -->
+  <!-- frame name matches imu_frame arg default in mote_base/launch/mote.launch -->
+  <joint name="imu_frame" type="fixed">
+    <parent link="chassis"/>
+    <child link="imu_link"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="imu_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-9"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+  </link>
+
+</robot>

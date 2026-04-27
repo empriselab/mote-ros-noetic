@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- GMapping SLAM -->
+  <node pkg="gmapping" type="slam_gmapping" name="mote_slam_gmapping" output="screen">
+    <rosparam command="load" file="$(find mote_navigation)/config/gmapping_params.yaml" />
+  </node>
+</launch>

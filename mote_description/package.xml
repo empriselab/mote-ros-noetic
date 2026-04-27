@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mote_description</name>
+  <version>0.1.0</version>
+  <description>URDF robot description for the Mote mobile robot.</description>
+  <maintainer email="michael@michael-crum.com">Mote Contributors</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>urdf</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <export></export>
+</package>

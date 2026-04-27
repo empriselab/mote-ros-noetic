@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Load robot URDF into /robot_description -->
+    <include file="$(find mote_description)/launch/description.launch"/>
+
+    <!-- Load controller configuration -->
+    <rosparam command="load" file="$(find mote_control)/config/control.yaml" />
+
+    <!-- Spawn controllers -->
+    <!-- Note: if you launch mote_base/launch/mote.launch alongside this, remove the
+         controller_spawner from that launch to avoid spawning diff_drive_controller twice. -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner"
+        args="diff_drive_controller joint_state_controller" output="screen"/>
+
+    <!-- Run EKF for localization -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization" output="screen">
+      <rosparam command="load" file="$(find mote_control)/config/ekf.yaml" />
+    </node>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+</launch>

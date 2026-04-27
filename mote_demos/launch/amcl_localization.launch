@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Required: IP address of the mote robot -->
+  <arg name="robot_ip"/>
+
+  <!-- Optional: path to the map file -->
+  <arg name="map_file" default="$(find mote_demos)/maps/apartment.yaml"/>
+
+  <!-- Mote base: hardware interface, diff_drive_controller, sensor TFs -->
+  <include file="$(find mote_base)/launch/mote.launch">
+    <arg name="robot_ip" value="$(arg robot_ip)"/>
+  </include>
+
+  <!-- Foxglove visualization -->
+  <include file="$(find mote_viz)/launch/viz.launch"/>
+
+  <!-- Start AMCL -->
+  <include file="$(find mote_navigation)/launch/amcl.launch"/>
+
+  <!-- Provide the map using Map Server -->
+  <node pkg="map_server" type="map_server" name="map_server" args="$(arg map_file)" output="screen"/>
+</launch>
