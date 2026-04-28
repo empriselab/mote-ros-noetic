@@ -21,14 +21,14 @@
   <arg name="imu_z"     default="0.0" />
 
   <!-- Load controller configuration -->
-  <rosparam file="$(find mote_base)/config/controllers.yaml" command="load" />
+  <rosparam file="$(find mote_ros_noetic)/config/controllers.yaml" command="load" />
 
   <!-- Apply wheel geometry overrides on top of the YAML defaults -->
   <param name="diff_drive_controller/wheel_separation" value="$(arg wheel_separation)" />
   <param name="diff_drive_controller/wheel_radius"     value="$(arg wheel_radius)" />
 
   <!-- Hardware interface node -->
-  <node pkg="mote_base" type="mote_node" name="mote_node" output="screen">
+  <node pkg="mote_ros_noetic" type="mote_node" name="mote_node" output="screen">
     <param name="robot_ip"    value="$(arg robot_ip)" />
     <param name="laser_frame" value="$(arg laser_frame)" />
     <param name="imu_frame"   value="$(arg imu_frame)" />

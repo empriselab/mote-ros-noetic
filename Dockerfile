@@ -29,6 +29,9 @@ RUN /bin/bash -c "\
     catkin_make"
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN apt-get update && apt-get install -y --no-install-recommends dos2unix \
+    && dos2unix /docker-entrypoint.sh \
+    && rm -rf /var/lib/apt/lists/*
 RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
