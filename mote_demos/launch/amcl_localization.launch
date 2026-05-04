@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- Required: IP address of the mote robot -->
-  <arg name="robot_ip"/>
 
   <!-- Optional: path to the map file -->
   <arg name="map_file" default="$(find mote_demos)/maps/apartment.yaml"/>
 
   <!-- Mote base: hardware interface, diff_drive_controller, sensor TFs -->
-  <include file="$(find mote_base)/launch/mote.launch">
-    <arg name="robot_ip" value="$(arg robot_ip)"/>
-  </include>
+  <!-- Mote Base should still be running -->
+  <!-- <include file="$(find mote_base)/launch/mote.launch">
+    <arg name="robot_ip" value="$ROBOT_IP"/>
+  </include> -->
 
   <!-- Foxglove visualization -->
   <include file="$(find mote_viz)/launch/viz.launch"/>

@@ -17,5 +17,18 @@
   <depend>joint_state_controller</depend>
   <exec_depend>foxglove_bridge</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
+
+  <!-- for other nodes since docker only looks here to install deps -->
+  <!-- urdf -->
   <exec_depend>xacro</exec_depend>
+  <!-- hw 3 and 4 and slammapping -->
+  <exec_depend>map_server</exec_depend>
+  <!-- hw 3 -->
+  <exec_depend>amcl</exec_depend>
+  <!-- slam mapping -->
+  <exec_depend>gmapping</exec_depend> 
+  <!-- tf-conversions -->
+  <exec_depend>tf_conversions</exec_depend>
+  <!-- rrt for pure pursuit -->
+  <exec_depend>costmap_2d</exec_depend>
 </package>

@@ -13,8 +13,8 @@ diff_drive_controller:
   cmd_vel_timeout: 0.5
   velocity_rolling_window_size: 2
 
-  wheel_separation: 0.15   # meters, center-to-center distance between wheels
-  wheel_radius: 0.033      # meters
+  wheel_separation: 0.142   # meters, center-to-center distance between wheels
+  wheel_radius:     0.0675  # meters
 
   # Publish final output cmd_vel
   publish_cmd: true
@@ -29,10 +29,10 @@ diff_drive_controller:
   linear:
     x:
       has_velocity_limits    : true
-      max_velocity           : 1.0   # m/s
+      max_velocity           : 0.1   # m/s
       has_acceleration_limits: false
   angular:
     z:
       has_velocity_limits    : true
-      max_velocity           : 4.0   # rad/s
+      max_velocity           : 2.0   # rad/s
       has_acceleration_limits: false

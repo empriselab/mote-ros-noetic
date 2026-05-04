@@ -158,6 +158,8 @@ public:
          {{"left_velocity_rad", cmd_[0]}, {"right_velocity_rad", cmd_[1]}}}};
     const std::string cmd_str = cmd.dump();
 
+    // ROS_INFO_THROTTLE(0.5, "Commands - Left: %f, Right: %f", cmd_[0], cmd_[1]);
+
     std::lock_guard<std::mutex> lk(link_mutex_);
 
     // Reply to any Ping received during read()
@@ -332,7 +334,7 @@ private:
       bin = std::max(0, std::min(bin, SCAN_BINS - 1));
       float dist_m = pt.distance_mm / 1000.0f;
       if (dist_m < msg.ranges[bin])
-        msg.ranges[bin] = dist_m;
+        msg.ranges[SCAN_BINS - 1 - bin] = dist_m; // doing scan_bins - 1 - bin to essentially reverse array, ros expects ccw scans
     }
 
     scan_pub_.publish(msg);
