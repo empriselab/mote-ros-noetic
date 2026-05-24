@@ -1,3 +1,7 @@
+joint_state_controller:
+  type: "joint_state_controller/JointStateController"
+  publish_rate: 50
+
 # diff_drive_controller handles:
 #   - /cmd_vel subscription (geometry_msgs/Twist)
 #   - /odom publication (nav_msgs/Odometry)
@@ -6,14 +10,14 @@
 #
 # Wheel geometry can be overridden at launch time via roslaunch args.
 diff_drive_controller:
-  type: diff_drive_controller/DiffDriveController
+  type: "diff_drive_controller/DiffDriveController"
   left_wheel:  ['left_wheel']
   right_wheel: ['right_wheel']
   publish_rate: 50.0
 
   # Physical dimensions — override these at launch for your specific robot
-  wheel_separation: 0.15   # meters, center-to-center distance between wheels
-  wheel_radius:     0.033  # meters
+  wheel_separation: 0.13   # meters, center-to-center distance between wheels
+  wheel_radius:     0.0325  # meters
 
   # Stop the robot if no /cmd_vel is received for this many seconds
   cmd_vel_timeout: 0.5

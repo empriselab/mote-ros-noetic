@@ -1,7 +1,6 @@
 # Build context must be the mote-ros-noetic/ directory.
 # Build command: docker build -t mote-ros-noetic .
 
-# ── Build the ROS Noetic node ────────────────────────────────────────────────
 FROM ros:noetic-ros-base AS ros-builder
 
 # Install bare build tools (rosdep handles all ROS/package deps below).
@@ -19,7 +18,6 @@ RUN apt-get update && \
     rosdep install --from-paths /catkin_ws/src --ignore-src -r -y --include-eol-distros
 
 # Copy full source and build the catkin workspace.
-# CMakeLists.txt downloads libmote_ffi from GitHub releases at configure time.
 WORKDIR /catkin_ws/src
 COPY . mote_ros_noetic/
 

@@ -284,11 +284,11 @@ private:
     // Note: field name "postition_rad" is a typo in the mote-api schema
     // (double-t). It must match the wire format exactly.
     pos_[0] = state["left"]["postition_rad"].get<double>();
-    pos_[1] = state["right"]["postition_rad"].get<double>();
+    pos_[1] = -state["right"]["postition_rad"].get<double>();
     vel_[0] = state["left"]["velocity_rad_per_s"].get<double>();
-    vel_[1] = state["right"]["velocity_rad_per_s"].get<double>();
+    vel_[1] = -state["right"]["velocity_rad_per_s"].get<double>();
     eff_[0] = state["left"]["effort_percent"].get<double>();
-    eff_[1] = state["right"]["effort_percent"].get<double>();
+    eff_[1] = -state["right"]["effort_percent"].get<double>();
   }
 
   // Accumulate raw scan points and publish one LaserScan per full rotation.
