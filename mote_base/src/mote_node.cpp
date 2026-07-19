@@ -6,9 +6,7 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/LaserScan.h>
 
-extern "C" {
-#include <mote_link.h>
-}
+#include "mote-ffi/src/mote_cxx.rs.h"
 
 #include <nlohmann/json.hpp>
 
@@ -34,13 +32,11 @@ constexpr int   SCAN_BINS      = 360;
 constexpr float SCAN_ANGLE_INC = 2.0f * static_cast<float>(M_PI) / SCAN_BINS;
 constexpr int UDP_PORT = 7475;
 constexpr int UDP_BUF_SIZE = 65536;
-constexpr int LINK_BUF_SIZE = 65536;
-constexpr int JSON_BUF_SIZE = 131072;
 } // namespace
 
 class MoteHardwareInterface : public hardware_interface::RobotHW {
 public:
-  MoteHardwareInterface() = default;
+  MoteHardwareInterface() : link_(mote::new_mote_link()) {}
 
   ~MoteHardwareInterface() override {
     running_.store(false);
@@ -49,10 +45,6 @@ public:
     if (udp_fd_ >= 0) {
       ::close(udp_fd_);
       udp_fd_ = -1;
-    }
-    if (link_) {
-      mote_link_free(link_);
-      link_ = nullptr;
     }
   }
 
@@ -75,13 +67,6 @@ public:
     }
     registerInterface(&jnt_state_iface_);
     registerInterface(&jnt_vel_iface_);
-
-    // Allocate mote-ffi link handle
-    link_ = mote_link_new();
-    if (!link_) {
-      ROS_FATAL("mote_node: mote_link_new() failed");
-      return false;
-    }
 
     // Open UDP socket and connect to robot
     udp_fd_ = ::socket(AF_INET, SOCK_DGRAM, 0);
@@ -124,25 +109,23 @@ public:
   // Drains decoded messages from the link, updates joint state buffers,
   // and publishes sensor topics.
   void read(const ros::Time &time, const ros::Duration & /*period*/) override {
-    std::vector<char> buf(JSON_BUF_SIZE);
     while (true) {
-      int n;
+      mote::ReceiveResult result;
       {
         std::lock_guard<std::mutex> lk(link_mutex_);
-        n = mote_link_poll_receive(link_, buf.data(),
-                                   static_cast<int>(buf.size()));
+        result = link_->poll_receive();
       }
-      if (n == 0)
-        break;
-      if (n < 0) {
+      if (result.error != mote::MoteLinkErrorCode::None) {
         // Corrupt or undeserializable frame — already consumed from the queue.
         // Continue draining rather than dropping all subsequent messages.
-        ROS_WARN_THROTTLE(5.0,
-                          "mote_node: dropping corrupt frame from mote_link");
+        ROS_WARN_THROTTLE(5.0, "mote_node: poll_receive error: %s",
+                          result.error_message.c_str());
         continue;
       }
+      if (result.json_message.empty())
+        break;
       try {
-        dispatch(json::parse(buf.data()), time);
+        dispatch(json::parse(result.json_message.c_str()), time);
       } catch (const json::exception &e) {
         ROS_WARN_THROTTLE(5.0, "mote_node: JSON parse error: %s", e.what());
       }
@@ -153,9 +136,9 @@ public:
   // controller.
   void write(const ros::Time & /*time*/,
              const ros::Duration & /*period*/) override {
-    json cmd = {
-        {"DriveBaseCommand",
-         {{"left_velocity_rad", cmd_[0]}, {"right_velocity_rad", cmd_[1]}}}};
+    json cmd = {{"SetDriveBaseVelocity",
+                 {{"left_velocity_rad_per_s", cmd_[0]},
+                  {"right_velocity_rad_per_s", cmd_[1]}}}};
     const std::string cmd_str = cmd.dump();
 
     // ROS_INFO_THROTTLE(0.5, "Commands - Left: %f, Right: %f", cmd_[0], cmd_[1]);
@@ -164,12 +147,14 @@ public:
 
     // Reply to any Ping received during read()
     if (pending_pong_) {
-      mote_link_send(link_, "\"Pong\"");
+      link_->send("\"Pong\"");
       pending_pong_ = false;
     }
 
-    if (mote_link_send(link_, cmd_str.c_str()) < 0)
-      ROS_WARN_THROTTLE(5.0, "mote_node: mote_link_send failed");
+    mote::SendResult result = link_->send(cmd_str);
+    if (result.error != mote::MoteLinkErrorCode::None)
+      ROS_WARN_THROTTLE(5.0, "mote_node: send failed: %s",
+                        result.error_message.c_str());
 
     flush_transmit();
   }
@@ -185,7 +170,7 @@ private:
   hardware_interface::JointStateInterface jnt_state_iface_;
   hardware_interface::VelocityJointInterface jnt_vel_iface_;
 
-  MoteLinkHandle *link_ = nullptr;
+  ::rust::Box<::mote::MoteLink> link_;
   std::mutex link_mutex_;
   bool pending_pong_ = false; // set in read(), cleared in write()
 
@@ -207,17 +192,14 @@ private:
   // Drain all pending transmit packets from the link and send over UDP.
   // Must be called with link_mutex_ held.
   void flush_transmit() {
-    std::vector<uint8_t> pkt(LINK_BUF_SIZE);
-    int n;
-    while ((n = mote_link_poll_transmit(link_, pkt.data(),
-                                        static_cast<int>(pkt.size()))) > 0) {
-      if (::send(udp_fd_, pkt.data(), static_cast<std::size_t>(n), 0) < 0)
+    while (true) {
+      ::rust::Vec<std::uint8_t> pkt = link_->poll_transmit();
+      if (pkt.empty())
+        break;
+      if (::send(udp_fd_, pkt.data(), pkt.size(), 0) < 0)
         ROS_WARN_THROTTLE(5.0, "mote_node: UDP send() failed: %s",
                           std::strerror(errno));
     }
-    if (n < 0)
-      ROS_WARN_THROTTLE(5.0,
-                        "mote_node: mote_link_poll_transmit: buffer too small");
   }
 
   // Background thread: feeds raw UDP packets into the link for decoding.
@@ -245,14 +227,15 @@ private:
         continue;
 
       std::lock_guard<std::mutex> lk(link_mutex_);
-      mote_link_handle_receive(link_, buf.data(), static_cast<int>(n));
+      link_->handle_receive(
+          ::rust::Slice<const std::uint8_t>(buf.data(), static_cast<std::size_t>(n)));
     }
   }
 
   // Sends a Ping to the robot once per second to keep the link alive.
   void keepalive_cb(const ros::TimerEvent &) {
     std::lock_guard<std::mutex> lk(link_mutex_);
-    mote_link_send(link_, "\"Ping\"");
+    link_->send("\"Ping\"");
     flush_transmit();
   }
 
@@ -271,8 +254,8 @@ private:
       update_joint_state(msg["DriveBaseState"]);
     if (msg.contains("Scan"))
       publish_scan(msg["Scan"], stamp);
-    if (msg.contains("IMUMeasurement"))
-      publish_imu(msg["IMUMeasurement"], stamp);
+    if (msg.contains("ImuMeasurement"))
+      publish_imu(msg["ImuMeasurement"], stamp);
     if (msg.contains("State"))
       ROS_DEBUG_STREAM(
           "mote_node: device state update: " << msg["State"].dump());
@@ -280,10 +263,8 @@ private:
 
   // Update joint state buffers from a DriveBaseState message.
   void update_joint_state(const json &state) {
-    // Note: field name "postition_rad" is a typo in the mote-api schema
-    // (double-t). It must match the wire format exactly.
-    pos_[0] = state["left"]["postition_rad"].get<double>();
-    pos_[1] = state["right"]["postition_rad"].get<double>();
+    pos_[0] = state["left"]["position_rad"].get<double>();
+    pos_[1] = state["right"]["position_rad"].get<double>();
     vel_[0] = state["left"]["velocity_rad_per_s"].get<double>();
     vel_[1] = state["right"]["velocity_rad_per_s"].get<double>();
     eff_[0] = state["left"]["effort_percent"].get<double>();

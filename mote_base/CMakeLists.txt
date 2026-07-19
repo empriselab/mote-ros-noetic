@@ -22,17 +22,22 @@ catkin_package()
 
 # --- libmote_ffi ---
 # Logic to handle the Rust FFI library
-set(MOTE_FFI_VERSION "0.1.0")
+set(MOTE_FFI_VERSION "0.2.0")
 
 if(NOT DEFINED MOTE_FFI_DIR)
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+    # TODO: the mote-cxx-v0.2.0 release does not publish a linux-aarch64 asset
+    # (only linux-x86_64 and macos-aarch64), so this will 404 against that tag.
+    # mote-core's release pipeline has since been updated to build one (see
+    # release-build-cxx-linux-aarch64 in mote-ffi/Taskfile.yml) — bump
+    # MOTE_FFI_VERSION once a release containing it is published.
     set(_MOTE_FFI_ARCH "aarch64")
   else()
     set(_MOTE_FFI_ARCH "x86_64")
   endif()
 
   FetchContent_Declare(mote_ffi
-    URL "https://github.com/empriselab/mote-core/releases/download/mote-ffi-v${MOTE_FFI_VERSION}/mote-ffi-c-linux-${_MOTE_FFI_ARCH}-v${MOTE_FFI_VERSION}.tar.gz"
+    URL "https://github.com/empriselab/mote/releases/download/mote-cxx-v${MOTE_FFI_VERSION}/mote-ffi-cxx-linux-${_MOTE_FFI_ARCH}-v${MOTE_FFI_VERSION}.tar.gz"
   )
   FetchContent_MakeAvailable(mote_ffi)
   set(MOTE_FFI_DIR "${mote_ffi_SOURCE_DIR}")
@@ -61,7 +66,7 @@ target_link_libraries(mote_node
   m
 )
 
-target_compile_features(mote_node PRIVATE cxx_std_14)
+target_compile_features(mote_node PRIVATE cxx_std_17)
 
 # --- Installation ---
 install(TARGETS mote_node
