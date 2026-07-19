@@ -53,7 +53,9 @@ inline std::vector<RawScanPoint> parse_scan_points(const nlohmann::json &points)
   std::vector<RawScanPoint> out;
   out.reserve(points.size());
   for (const auto &pt : points) {
-    if (pt["quality"].get<int>() == 0) continue;
+    if (pt["quality"].get<int>() == 0) {
+      continue;
+    }
     out.push_back({pt["angle_rad"].get<float>(), pt["distance_mm"].get<float>()});
   }
   return out;

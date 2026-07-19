@@ -36,7 +36,9 @@ class ScanRasterizer {
 
     constexpr float two_pi = 2.0f * static_cast<float>(M_PI);
     float angle = std::fmod(pt.angle_rad, two_pi);
-    if (angle < 0.0f) angle += two_pi;
+    if (angle < 0.0f) {
+      angle += two_pi;
+    }
 
     if (prev_angle_ >= 0.0f && angle < prev_angle_ - static_cast<float>(M_PI)) {
       completed = rasterize();
@@ -50,20 +52,21 @@ class ScanRasterizer {
   }
 
   // Number of points accumulated for the in-progress rotation.
-  std::size_t size() const { return accum_.size(); }
+  [[nodiscard]] std::size_t size() const { return accum_.size(); }
 
  private:
   std::vector<RawScanPoint> accum_;
   float prev_angle_ = -1.0f;  // -1 = no previous point
 
-  std::vector<float> rasterize() const {
+  [[nodiscard]] std::vector<float> rasterize() const {
     std::vector<float> ranges(kScanBins, std::numeric_limits<float>::infinity());
     for (const auto &pt : accum_) {
       int bin = static_cast<int>(pt.angle_rad / kScanAngleInc);
       bin = std::max(0, std::min(bin, kScanBins - 1));
       const float dist_m = pt.distance_mm / 1000.0f;
-      if (dist_m < ranges[bin])
+      if (dist_m < ranges[bin]) {
         ranges[kScanBins - 1 - bin] = dist_m;  // reversed: ROS expects ccw scans
+      }
     }
     return ranges;
   }

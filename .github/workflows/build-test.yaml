@@ -38,8 +38,8 @@ jobs:
           catkin_make run_tests
           catkin_test_results build
 
-      - name: clang-tidy (advisory only — not yet a hard gate)
+      - name: clang-tidy
         run: |
           apt-get install -y --no-install-recommends clang-tidy
           find src/mote_base/src src/mote_base/include \( -name '*.cpp' -o -name '*.h' \) -print0 \
-            | xargs -0 -r clang-tidy -p build || true
+            | xargs -0 -r clang-tidy -p build --warnings-as-errors='*'

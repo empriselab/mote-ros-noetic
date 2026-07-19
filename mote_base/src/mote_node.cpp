@@ -10,6 +10,7 @@
 #include <boost/asio.hpp>
 #include <cmath>
 #include <cstdint>
+#include <exception>
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -48,10 +49,12 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
     boost::system::error_code ec;
     socket_.close(ec);
     io_ctx_.stop();
-    if (io_thread_.joinable()) io_thread_.join();
+    if (io_thread_.joinable()) {
+      io_thread_.join();
+    }
   }
 
-  bool init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh) {
+  bool init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh) override {
     std::string robot_ip;
     if (!robot_hw_nh.getParam("robot_ip", robot_ip)) {
       ROS_FATAL("mote_node: ~robot_ip parameter is required");
@@ -118,7 +121,9 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
         ROS_WARN_THROTTLE(5.0, "mote_node: poll_receive error: %s", result.error_message.c_str());
         continue;
       }
-      if (result.json_message.empty()) break;
+      if (result.json_message.empty()) {
+        break;
+      }
       try {
         dispatch(json::parse(result.json_message.c_str()), time);
       } catch (const json::exception &e) {
@@ -143,8 +148,9 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
     }
 
     mote::SendResult result = link_->send(cmd_str);
-    if (result.error != mote::MoteLinkErrorCode::None)
+    if (result.error != mote::MoteLinkErrorCode::None) {
       ROS_WARN_THROTTLE(5.0, "mote_node: send failed: %s", result.error_message.c_str());
+    }
 
     flush_transmit();
   }
@@ -182,10 +188,14 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
   void flush_transmit() {
     while (true) {
       ::rust::Vec<std::uint8_t> pkt = link_->poll_transmit();
-      if (pkt.empty()) break;
+      if (pkt.empty()) {
+        break;
+      }
       boost::system::error_code ec;
       socket_.send(boost::asio::buffer(pkt.data(), pkt.size()), 0, ec);
-      if (ec) ROS_WARN_THROTTLE(5.0, "mote_node: UDP send() failed: %s", ec.message().c_str());
+      if (ec) {
+        ROS_WARN_THROTTLE(5.0, "mote_node: UDP send() failed: %s", ec.message().c_str());
+      }
     }
   }
 
@@ -195,7 +205,9 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
   void start_receive() {
     socket_.async_receive(
         boost::asio::buffer(recv_buf_), [this](const boost::system::error_code &ec, std::size_t n) {
-          if (ec == boost::asio::error::operation_aborted) return;
+          if (ec == boost::asio::error::operation_aborted) {
+            return;
+          }
           if (!ec) {
             std::lock_guard<std::mutex> lk(link_mutex_);
             link_->handle_receive(::rust::Slice<const std::uint8_t>(recv_buf_.data(), n));
@@ -207,7 +219,7 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
   }
 
   // Sends a Ping to the robot once per second to keep the link alive.
-  void keepalive_cb(const ros::TimerEvent &) {
+  void keepalive_cb(const ros::TimerEvent & /*unused*/) {
     std::lock_guard<std::mutex> lk(link_mutex_);
     link_->send("\"Ping\"");
     flush_transmit();
@@ -217,16 +229,27 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
   void dispatch(const json &msg, const ros::Time &stamp) {
     if (msg.is_string()) {
       // Ping from robot: queue a Pong reply (sent in write())
-      if (msg.get<std::string>() == "Ping") pending_pong_ = true;
+      if (msg.get<std::string>() == "Ping") {
+        pending_pong_ = true;
+      }
       return;
     }
-    if (!msg.is_object()) return;
+    if (!msg.is_object()) {
+      return;
+    }
 
-    if (msg.contains("DriveBaseState")) update_joint_state(msg["DriveBaseState"]);
-    if (msg.contains("Scan")) publish_scan(msg["Scan"], stamp);
-    if (msg.contains("ImuMeasurement")) publish_imu(msg["ImuMeasurement"], stamp);
-    if (msg.contains("State"))
+    if (msg.contains("DriveBaseState")) {
+      update_joint_state(msg["DriveBaseState"]);
+    }
+    if (msg.contains("Scan")) {
+      publish_scan(msg["Scan"], stamp);
+    }
+    if (msg.contains("ImuMeasurement")) {
+      publish_imu(msg["ImuMeasurement"], stamp);
+    }
+    if (msg.contains("State")) {
       ROS_DEBUG_STREAM("mote_node: device state update: " << msg["State"].dump());
+    }
   }
 
   // Update joint state buffers from a DriveBaseState message.
@@ -245,13 +268,17 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
   void publish_scan(const json &points, const ros::Time &stamp) {
     for (const auto &raw_pt : mote_base::parse_scan_points(points)) {
       auto completed = scan_rasterizer_.add_point(raw_pt);
-      if (completed) scan_pub_.publish(build_laser_scan_msg(*completed, scan_accum_stamp_));
-      if (scan_rasterizer_.size() == 1) scan_accum_stamp_ = stamp;
+      if (completed) {
+        scan_pub_.publish(build_laser_scan_msg(*completed, scan_accum_stamp_));
+      }
+      if (scan_rasterizer_.size() == 1) {
+        scan_accum_stamp_ = stamp;
+      }
     }
   }
 
-  sensor_msgs::LaserScan build_laser_scan_msg(const std::vector<float> &ranges,
-                                              const ros::Time &stamp) const {
+  [[nodiscard]] sensor_msgs::LaserScan build_laser_scan_msg(const std::vector<float> &ranges,
+                                                            const ros::Time &stamp) const {
     sensor_msgs::LaserScan msg;
     msg.header.stamp = stamp;
     msg.header.frame_id = laser_frame_;
@@ -292,35 +319,40 @@ int main(int argc, char **argv) {
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
 
-  MoteHardwareInterface robot;
-  if (!robot.init(nh, pnh)) {
-    ROS_FATAL("mote_node: initialization failed, shutting down");
+  try {
+    MoteHardwareInterface robot;
+    if (!robot.init(nh, pnh)) {
+      ROS_FATAL("mote_node: initialization failed, shutting down");
+      return 1;
+    }
+
+    controller_manager::ControllerManager cm(&robot, nh);
+
+    // Process ROS callbacks (CM service calls, keepalive timer, etc.) in a
+    // background thread.  This prevents controller_manager::loadController()'s
+    // internal double-buffer busy-wait from blocking the cm.update() calls below.
+    ros::AsyncSpinner spinner(1);
+    spinner.start();
+
+    ros::Rate rate(50.0);
+    ros::Time last = ros::Time::now();
+
+    while (ros::ok()) {
+      const ros::Time now = ros::Time::now();
+      const ros::Duration dt = now - last;
+
+      robot.read(now, dt);
+      cm.update(now, dt);
+      robot.write(now, dt);
+
+      last = now;
+      rate.sleep();
+    }
+
+    spinner.stop();
+    return 0;
+  } catch (const std::exception &e) {
+    ROS_FATAL("mote_node: unhandled exception, shutting down: %s", e.what());
     return 1;
   }
-
-  controller_manager::ControllerManager cm(&robot, nh);
-
-  // Process ROS callbacks (CM service calls, keepalive timer, etc.) in a
-  // background thread.  This prevents controller_manager::loadController()'s
-  // internal double-buffer busy-wait from blocking the cm.update() calls below.
-  ros::AsyncSpinner spinner(1);
-  spinner.start();
-
-  ros::Rate rate(50.0);
-  ros::Time last = ros::Time::now();
-
-  while (ros::ok()) {
-    const ros::Time now = ros::Time::now();
-    const ros::Duration dt = now - last;
-
-    robot.read(now, dt);
-    cm.update(now, dt);
-    robot.write(now, dt);
-
-    last = now;
-    rate.sleep();
-  }
-
-  spinner.stop();
-  return 0;
 }

@@ -3,6 +3,7 @@ Checks: >
   -modernize-use-trailing-return-type,
   readability-*,
   -readability-magic-numbers,
+  -readability-uppercase-literal-suffix,
   bugprone-*
-WarningsAsErrors: ''
+WarningsAsErrors: '*'
 HeaderFilterRegex: 'mote_base/(src|include)/.*'
