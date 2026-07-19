@@ -1,0 +1,29 @@
+name: Lint
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  xmllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxml2-utils
+      - run: find . \( -name "package.xml" -o -name "*.launch" \) -print0 | xargs -0 -r -I{} xmllint --noout {}
+
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-format
+      - run: clang-format --dry-run --Werror mote_base/src/*.cpp mote_base/include/mote_base/*.h mote_base/test/*.cpp
+
+  catkin-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install catkin_lint
+      - run: catkin_lint --rosdistro noetic .

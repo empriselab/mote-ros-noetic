@@ -1,0 +1,39 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    container: ros:noetic-ros-base
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: rosdep install
+        run: |
+          apt-get update
+          rosdep update --rosdistro noetic --include-eol-distros
+          rosdep install --from-paths src --ignore-src -r -y --include-eol-distros
+
+      - name: Build (compile_commands.json + warnings-as-errors)
+        run: |
+          source /opt/ros/noetic/setup.bash
+          catkin_make -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror"
+
+      - name: Run tests
+        run: |
+          source /opt/ros/noetic/setup.bash
+          catkin_make run_tests
+          catkin_test_results build
+
+      - name: clang-tidy (advisory only — not yet a hard gate)
+        run: |
+          apt-get install -y --no-install-recommends clang-tidy
+          find src/mote_base/src src/mote_base/include \( -name '*.cpp' -o -name '*.h' \) -print0 \
+            | xargs -0 -r clang-tidy -p build || true

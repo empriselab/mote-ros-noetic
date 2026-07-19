@@ -1,0 +1,8 @@
+Checks: >
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  readability-*,
+  -readability-magic-numbers,
+  bugprone-*
+WarningsAsErrors: ''
+HeaderFilterRegex: 'mote_base/(src|include)/.*'

@@ -15,6 +15,9 @@
   <depend>controller_manager</depend>
   <depend>diff_drive_controller</depend>
   <depend>joint_state_controller</depend>
+  <depend>boost</depend>
   <exec_depend>foxglove_bridge</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
+
+  <url type="repository">https://github.com/empriselab/mote-ros-noetic</url>
 </package>

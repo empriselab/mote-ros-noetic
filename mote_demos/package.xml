@@ -15,5 +15,5 @@
   <exec_depend>map_server</exec_depend>
   <exec_depend>amcl</exec_depend>
 
-  <export></export>
+  <url type="repository">https://github.com/empriselab/mote-ros-noetic</url>
 </package>

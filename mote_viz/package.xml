@@ -10,5 +10,5 @@
 
   <exec_depend>foxglove_bridge</exec_depend>
 
-  <export></export>
+  <url type="repository">https://github.com/empriselab/mote-ros-noetic</url>
 </package>

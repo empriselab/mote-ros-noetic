@@ -1,9 +1,14 @@
 services:
   mote:
+    # Pulls ghcr.io/empriselab/mote-ros-noetic:latest by default (pull_policy:
+    # always makes `docker compose up` always fetch the current remote image,
+    # ignoring any local build). Pass --build (`docker compose up --build` or
+    # `docker compose build`) to build from the local Dockerfile instead.
+    image: ghcr.io/empriselab/mote-ros-noetic:latest
+    pull_policy: always
     build:
-      context: ..           # repo root, so both mote-core/ and mote-ros-noetic/ are accessible
-      dockerfile: mote-ros-noetic/Dockerfile
-    image: mote-ros-noetic
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8765:8765"   # Foxglove Bridge WebSocket (connect Foxglove Studio to ws://<host>:8765)
       - "11311:11311" # ROS Master URI (allows host-side ros CLI tools to connect)
