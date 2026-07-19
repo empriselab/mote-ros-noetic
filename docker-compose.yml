@@ -17,4 +17,3 @@ services:
       # WHEEL_RADIUS: "0.033"
       # LASER_FRAME: "laser"
       # IMU_FRAME: "imu_link"
-    restart: unless-stopped
