@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy package.xml first so rosdep can install ROS deps as a cached layer —
 # this layer only re-runs when package.xml changes, not on every source edit.
-WORKDIR /catkin_ws/src/mote_ros_noetic
+WORKDIR /catkin_ws/src/mote_ros_noetic/mote_base
 COPY package.xml .
 RUN apt-get update && \
     rosdep update --rosdistro noetic  --include-eol-distros && \
@@ -29,6 +29,9 @@ RUN /bin/bash -c "\
     catkin_make"
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN apt-get update && apt-get install -y --no-install-recommends dos2unix \
+    && dos2unix /docker-entrypoint.sh \
+    && rm -rf /var/lib/apt/lists/*
 RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

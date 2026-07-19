@@ -1,0 +1,18 @@
+services:
+  mote:
+    build:
+      context: ..           # repo root, so both mote-core/ and mote-ros-noetic/ are accessible
+      dockerfile: mote-ros-noetic/docker/ros_workspace.Dockerfile
+    image: mote-ros-noetic
+    network_mode: host      # required for UDP communication on the local network
+    environment:
+      # Required
+      ROBOT_IP: ${ROBOT_IP}
+      # Flush Python (roslaunch/spawner) stdout immediately so docker logs shows output
+      PYTHONUNBUFFERED: "1"
+      # Optional overrides (leave unset to use defaults from controllers.yaml / launch file)
+      # WHEEL_SEPARATION: "0.15"
+      # WHEEL_RADIUS: "0.033"
+      # LASER_FRAME: "laser"
+      # IMU_FRAME: "imu_link"
+    restart: unless-stopped

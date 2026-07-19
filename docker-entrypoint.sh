@@ -9,10 +9,3 @@ fi
 
 source /opt/ros/noetic/setup.bash
 source /catkin_ws/devel/setup.bash
-
-exec roslaunch mote_ros_noetic mote.launch \
-    robot_ip:="$ROBOT_IP" \
-    ${WHEEL_SEPARATION:+wheel_separation:="$WHEEL_SEPARATION"} \
-    ${WHEEL_RADIUS:+wheel_radius:="$WHEEL_RADIUS"} \
-    ${LASER_FRAME:+laser_frame:="$LASER_FRAME"} \
-    ${IMU_FRAME:+imu_frame:="$IMU_FRAME"}

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Required: IP address of the mote robot -->
+  <arg name="robot_ip"/>
+
+  <!-- Mote base: hardware interface, diff_drive_controller, sensor TFs -->
+  <include file="$(find mote_base)/launch/mote.launch">
+    <arg name="robot_ip" value="$(arg robot_ip)"/>
+  </include>
+
+  <!-- Foxglove visualization -->
+  <include file="$(find mote_viz)/launch/viz.launch"/>
+
+  <!-- GMapping SLAM -->
+  <node pkg="gmapping" type="slam_gmapping" name="mote_slam_gmapping" output="screen">
+    <rosparam command="load" file="$(find mote_navigation)/config/gmapping_params.yaml"/>
+  </node>
+</launch>

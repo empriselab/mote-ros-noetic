@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Foxglove Bridge — connect Foxglove Studio to ws://<host>:8765 -->
+  <!-- Note: if you launch mote_base/launch/mote.launch alongside this, remove the
+       foxglove_bridge node from that launch to avoid running it twice. -->
+  <include file="$(find foxglove_bridge)/launch/foxglove_bridge.launch">
+    <arg name="port" value="8765"/>
+  </include>
+</launch>

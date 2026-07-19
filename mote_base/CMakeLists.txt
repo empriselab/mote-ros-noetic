@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.14)
-project(mote_ros_noetic)
+cmake_minimum_required(VERSION 3.14) # Increased for FetchContent support
+project(mote_base)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -9,8 +9,9 @@ find_package(catkin REQUIRED COMPONENTS
   controller_manager
 )
 
+# --- nlohmann_json via FetchContent ---
+# This replaces the system find_package that was failing
 include(FetchContent)
-
 FetchContent_Declare(nlohmann_json
   URL "https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz"
 )
@@ -20,10 +21,7 @@ FetchContent_MakeAvailable(nlohmann_json)
 catkin_package()
 
 # --- libmote_ffi ---
-# MOTE_FFI_DIR should point to the directory containing:
-#   libmote_ffi.a
-#   include/mote_link.h
-# If not provided, the pre-built release artifact is downloaded from GitHub.
+# Logic to handle the Rust FFI library
 set(MOTE_FFI_VERSION "0.1.0")
 
 if(NOT DEFINED MOTE_FFI_DIR)
@@ -65,6 +63,7 @@ target_link_libraries(mote_node
 
 target_compile_features(mote_node PRIVATE cxx_std_14)
 
+# --- Installation ---
 install(TARGETS mote_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
