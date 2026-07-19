@@ -22,15 +22,10 @@ catkin_package()
 
 # --- libmote_ffi ---
 # Logic to handle the Rust FFI library
-set(MOTE_FFI_VERSION "0.2.0")
+set(MOTE_FFI_VERSION "0.2.1")
 
 if(NOT DEFINED MOTE_FFI_DIR)
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
-    # TODO: the mote-cxx-v0.2.0 release does not publish a linux-aarch64 asset
-    # (only linux-x86_64 and macos-aarch64), so this will 404 against that tag.
-    # mote-core's release pipeline has since been updated to build one (see
-    # release-build-cxx-linux-aarch64 in mote-ffi/Taskfile.yml) — bump
-    # MOTE_FFI_VERSION once a release containing it is published.
     set(_MOTE_FFI_ARCH "aarch64")
   else()
     set(_MOTE_FFI_ARCH "x86_64")
