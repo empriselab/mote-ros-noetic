@@ -25,5 +25,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install catkin_lint
+      - run: pip install catkin_lint rosdep
       - run: catkin_lint --rosdistro noetic .

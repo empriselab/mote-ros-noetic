@@ -50,6 +50,10 @@ set_target_properties(mote_ffi_static PROPERTIES
 # --- mote_node executable ---
 add_executable(mote_node src/mote_node.cpp)
 
+# MOTE_FFI_DIR is resolved at CMake-configure time by FetchContent above, so
+# catkin_lint's static analysis can't evaluate it and treats it as blank --
+# a false positive for a directory that genuinely exists once configured.
+#catkin_lint: ignore_once missing_directory external_directory
 target_include_directories(mote_node PRIVATE
   include
   ${catkin_INCLUDE_DIRS}
