@@ -8,13 +8,6 @@
 #include <optional>
 #include <vector>
 
-namespace {
-constexpr int kScanBins = 360;
-constexpr double kScanAngleInc = 2.0f * M_PI / kScanBins;
-constexpr double kRangeMin = 0.05f;  // 5 cm
-constexpr double kRangeMax = 12.0f;  // 12 m (RPLiDAR C1 max range)
-}  // namespace
-
 namespace mote_base {
 
 struct RawScanPoint {
@@ -25,15 +18,22 @@ struct RawScanPoint {
 // Accumulates raw (angle, distance) lidar samples and rasterizes them onto a
 // fixed angular grid once a full rotation completes.
 class ScanRasterizer {
+ public:
+  static constexpr int kScanBins = 360;
+  static constexpr float kScanAngleInc = 2.0f * static_cast<float>(M_PI) / kScanBins;
+  static constexpr float kRangeMin = 0.05f;  // 5 cm
+  static constexpr float kRangeMax = 12.0f;  // 12 m (RPLiDAR C1 max range)
+
+ private:
   std::vector<RawScanPoint> accum_;
   double prev_angle_ = -1.0f;  // -1 = no previous point
 
-  [[nodiscard]] std::vector<double> rasterize() const {
-    std::vector<double> ranges(kScanBins, std::numeric_limits<double>::infinity());
+  [[nodiscard]] std::vector<float> rasterize() const {
+    std::vector<float> ranges(kScanBins, std::numeric_limits<float>::infinity());
     for (const auto& point : accum_) {
       int bin{static_cast<int>(point.angle_rad / kScanAngleInc)};
       bin = std::max(0, std::min(bin, kScanBins - 1));
-      const double dist_m = point.distance_mm / 1000.0f;
+      const auto dist_m = static_cast<float>(point.distance_mm / 1000.0);
       if (dist_m < ranges[bin]) {
         ranges[kScanBins - 1 - bin] = dist_m;  // reversed: ROS expects ccw scans
       }
@@ -42,8 +42,8 @@ class ScanRasterizer {
   }
 
  public:
-  std::optional<std::vector<double>> add_point(const RawScanPoint& point) {
-    std::optional<std::vector<double>> completed;
+  std::optional<std::vector<float>> add_point(const RawScanPoint& point) {
+    std::optional<std::vector<float>> completed;
 
     constexpr double two_pi = 2.0f * M_PI;
     double angle = std::fmod(point.angle_rad, two_pi);

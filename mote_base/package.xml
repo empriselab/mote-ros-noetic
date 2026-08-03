@@ -13,9 +13,9 @@
   <depend>geometry_msgs</depend>
   <depend>hardware_interface</depend>
   <depend>controller_manager</depend>
-  <depend>diff_drive_controller</depend>
-  <depend>joint_state_controller</depend>
   <depend>boost</depend>
+  <exec_depend>diff_drive_controller</exec_depend>
+  <exec_depend>joint_state_controller</exec_depend>
   <exec_depend>foxglove_bridge</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
 

@@ -20,7 +20,9 @@ FetchContent_Declare(nlohmann_json
 set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(nlohmann_json)
 
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS roscpp sensor_msgs geometry_msgs
+)
 
 set(MOTE_FFI_VERSION "0.2.1")
 

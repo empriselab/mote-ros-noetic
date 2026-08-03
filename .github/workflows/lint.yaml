@@ -11,19 +11,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxml2-utils
-      - run: find . \( -name "package.xml" -o -name "*.launch" \) -print0 | xargs -0 -r -I{} xmllint --noout {}
+      - uses: ./.github/actions/build-image
+      - run: |
+          docker run --rm --entrypoint bash \
+            -v "$PWD/.github/scripts:/ci-scripts:ro" \
+            mote-ros-noetic:ci /ci-scripts/xmllint.sh
 
   clang-format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-format
-      - run: clang-format --dry-run --Werror mote_base/src/*.cpp mote_base/include/mote_base/*.h mote_base/test/*.cpp
+      - uses: ./.github/actions/build-image
+      - run: |
+          docker run --rm --entrypoint bash \
+            -v "$PWD/.github/scripts:/ci-scripts:ro" \
+            mote-ros-noetic:ci /ci-scripts/clang-format.sh
 
   catkin-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install catkin_lint rosdep
-      - run: catkin_lint --rosdistro noetic .
+      - uses: ./.github/actions/build-image
+      - run: |
+          docker run --rm --entrypoint bash \
+            -v "$PWD/.github/scripts:/ci-scripts:ro" \
+            mote-ros-noetic:ci /ci-scripts/catkin-lint.sh
