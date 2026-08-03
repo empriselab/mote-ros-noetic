@@ -1,0 +1,21 @@
+{
+  "name": "mote-ros-noetic",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "overrideCommand": true,
+  "workspaceMount": "source=${localWorkspaceFolder},target=/catkin_ws/src/mote_ros_noetic,type=bind,consistency=cached",
+  "workspaceFolder": "/catkin_ws/src/mote_ros_noetic",
+  "postCreateCommand": "apt-get update && apt-get install -y --no-install-recommends clangd && bash -c 'source /opt/ros/noetic/setup.bash && catkin_make -DCMAKE_EXPORT_COMPILE_COMMANDS=1'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "llvm-vs-code-extensions.vscode-clangd"
+      ],
+      "settings": {
+        "C_Cpp.intelliSenseEngine": "disabled"
+      }
+    }
+  }
+}

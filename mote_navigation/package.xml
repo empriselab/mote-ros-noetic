@@ -12,5 +12,5 @@
   <exec_depend>gmapping</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
 
-  <export></export>
+  <url type="repository">https://github.com/empriselab/mote-ros-noetic</url>
 </package>

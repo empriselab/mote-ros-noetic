@@ -1,0 +1,21 @@
+name: Build, Test, and Lint
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-image
+
+      - name: Lint, build (compile_commands.json + warnings-as-errors), test, clang-tidy
+        run: |
+          docker run --rm --entrypoint bash \
+            -v "$PWD/.github/scripts:/ci-scripts:ro" \
+            mote-ros-noetic:ci /ci-scripts/build-test-lint.sh

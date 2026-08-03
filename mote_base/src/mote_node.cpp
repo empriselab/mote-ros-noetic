@@ -6,49 +6,205 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/LaserScan.h>
 
-#include "mote-ffi/src/mote_cxx.rs.h"
-
-#include <nlohmann/json.hpp>
-
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
-#include <atomic>
+#include <array>
+#include <boost/asio.hpp>
 #include <cmath>
-#include <cstring>
-#include <limits>
+#include <cstdint>
+#include <exception>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <thread>
 #include <vector>
 
+#include "mote-ffi/src/mote_cxx.rs.h"
+#include "mote_base/messages.h"
+#include "mote_base/scan_rasterizer.h"
+
 using json = nlohmann::json;
+using mote_base::ScanRasterizer;
 
 namespace {
-constexpr int   SCAN_BINS      = 360;
-constexpr float SCAN_ANGLE_INC = 2.0f * static_cast<float>(M_PI) / SCAN_BINS;
 constexpr int UDP_PORT = 7475;
 constexpr int UDP_BUF_SIZE = 65536;
-} // namespace
+constexpr std::array<const char*, 2> kJointNames = {"left_wheel", "right_wheel"};
+}  // namespace
 
 class MoteHardwareInterface : public hardware_interface::RobotHW {
-public:
-  MoteHardwareInterface() : link_(mote::new_mote_link()) {}
+  // Joint state buffers indexed [0]=left_wheel, [1]=right_wheel
+  std::array<double, 2> pos_{};
+  std::array<double, 2> vel_{};
+  std::array<double, 2> eff_{};
+  std::array<double, 2> cmd_{};
 
-  ~MoteHardwareInterface() override {
-    running_.store(false);
-    if (recv_thread_.joinable())
-      recv_thread_.join();
-    if (udp_fd_ >= 0) {
-      ::close(udp_fd_);
-      udp_fd_ = -1;
+  hardware_interface::JointStateInterface jnt_state_iface_;
+  hardware_interface::VelocityJointInterface jnt_vel_iface_;
+
+  ::rust::Box<::mote::MoteLink> link_;
+  std::mutex link_mutex_;
+  bool pending_pong_ = false;  // set in read(), cleared in write()
+
+  boost::asio::io_context io_ctx_;
+  boost::asio::ip::udp::socket socket_{io_ctx_};
+  std::thread io_thread_;
+  std::array<std::uint8_t, UDP_BUF_SIZE> recv_buf_{};
+
+  ros::Publisher scan_pub_;
+  ros::Publisher imu_pub_;
+  ros::Timer keepalive_timer_;
+  std::string laser_frame_;
+  std::string imu_frame_;
+
+  ScanRasterizer scan_rasterizer_;
+  ros::Time scan_accum_stamp_;
+
+  // Drain all pending transmit packets from the link and send over UDP.
+  // Must be called with link_mutex_ held.
+  void flush_transmit() {
+    while (true) {
+      ::rust::Vec<std::uint8_t> pkt = link_->poll_transmit();
+      if (pkt.empty()) {
+        break;
+      }
+      boost::system::error_code ec;
+      socket_.send(boost::asio::buffer(pkt.data(), pkt.size()), 0, ec);
+      if (ec) {
+        ROS_WARN_THROTTLE(5.0, "mote_node: UDP send() failed: %s", ec.message().c_str());
+      }
     }
   }
 
-  bool init(ros::NodeHandle &root_nh, ros::NodeHandle &robot_hw_nh) {
+  void start_receive() {
+    socket_.async_receive(
+        boost::asio::buffer(recv_buf_), [this](const boost::system::error_code& ec, std::size_t n) {
+          if (ec == boost::asio::error::operation_aborted) {
+            return;
+          }
+          if (!ec) {
+            std::lock_guard<std::mutex> lk(link_mutex_);
+            link_->handle_receive(::rust::Slice<const std::uint8_t>(recv_buf_.data(), n));
+          } else {
+            ROS_WARN_THROTTLE(5.0, "mote_node: async_receive error: %s", ec.message().c_str());
+          }
+          start_receive();
+        });
+  }
+
+  // Sends a Ping to the robot once per second to keep the link alive.
+  void keepalive_cb(const ros::TimerEvent& /*unused*/) {
+    std::lock_guard<std::mutex> lk(link_mutex_);
+    link_->send("\"Ping\"");
+    flush_transmit();
+  }
+
+  // Route a decoded JSON message to the appropriate handler.
+  void dispatch(const json& msg, const ros::Time& stamp) {
+    if (msg.is_string()) {
+      // Ping from robot: queue a Pong reply (sent in write())
+      if (msg.get<std::string>() == "Ping") {
+        pending_pong_ = true;
+      }
+      return;
+    }
+    if (!msg.is_object()) {
+      return;
+    }
+
+    if (msg.contains("DriveBaseState")) {
+      update_joint_state(msg["DriveBaseState"]);
+    }
+    if (msg.contains("Scan")) {
+      publish_scan(msg["Scan"], stamp);
+    }
+    if (msg.contains("ImuMeasurement")) {
+      publish_imu(msg["ImuMeasurement"], stamp);
+    }
+    if (msg.contains("State")) {
+      ROS_DEBUG_STREAM("mote_node: device state update: " << msg["State"].dump());
+    }
+  }
+
+  // Update joint state buffers from a DriveBaseState message.
+  void update_joint_state(const json& state) {
+    const mote_base::DriveBaseState s = mote_base::parse_drive_base_state(state);
+    pos_[0] = s.left_position_rad;
+    vel_[0] = s.left_velocity_rad_per_s;
+    eff_[0] = s.left_effort_percent;
+    pos_[1] = s.right_position_rad;
+    vel_[1] = s.right_velocity_rad_per_s;
+    eff_[1] = s.right_effort_percent;
+  }
+
+  // Feed each point of a Scan message into the rasterizer and publish one
+  // LaserScan per full rotation.
+  void publish_scan(const json& points, const ros::Time& stamp) {
+    for (const auto& raw_pt : mote_base::parse_scan_points(points)) {
+      auto completed = scan_rasterizer_.add_point(raw_pt);
+      if (completed) {
+        scan_pub_.publish(build_laser_scan_msg(*completed, scan_accum_stamp_));
+      }
+      if (scan_rasterizer_.size() == 1) {
+        scan_accum_stamp_ = stamp;
+      }
+    }
+  }
+
+  // sensor_msgs::LaserScan fields are float32 per the ROS message definition, so the
+  // internally-computed doubles are narrowed here, at the point of publishing.
+  [[nodiscard]] sensor_msgs::LaserScan build_laser_scan_msg(const mote_base::RasterizedScan& scan,
+                                                            const ros::Time& stamp) const {
+    sensor_msgs::LaserScan msg;
+    msg.header.stamp = stamp;
+    msg.header.frame_id = laser_frame_;
+    msg.angle_min = 0.0f;
+    msg.angle_max = static_cast<float>(2.0 * M_PI - ScanRasterizer::kScanAngleInc);
+    msg.angle_increment = static_cast<float>(ScanRasterizer::kScanAngleInc);
+    msg.range_min = static_cast<float>(ScanRasterizer::kRangeMin);
+    msg.range_max = static_cast<float>(ScanRasterizer::kRangeMax);
+    msg.ranges.assign(scan.ranges.begin(), scan.ranges.end());
+    msg.intensities.assign(scan.intensities.begin(), scan.intensities.end());
+    return msg;
+  }
+
+  // Publish an IMU message. Orientation is unknown (covariance[0] = -1 per REP-145).
+  void publish_imu(const json& imu, const ros::Time& stamp) {
+    const mote_base::ImuMeasurement m = mote_base::parse_imu_measurement(imu);
+
+    sensor_msgs::Imu msg;
+    msg.header.stamp = stamp;
+    msg.header.frame_id = imu_frame_;
+
+    msg.orientation_covariance[0] = -1.0;  // orientation unknown
+
+    msg.linear_acceleration.x = m.accel_x;
+    msg.linear_acceleration.y = m.accel_y;
+    msg.linear_acceleration.z = m.accel_z;
+
+    msg.angular_velocity.x = m.gyro_x;
+    msg.angular_velocity.y = m.gyro_y;
+    msg.angular_velocity.z = m.gyro_z;
+
+    imu_pub_.publish(msg);
+  }
+
+ public:
+  MoteHardwareInterface() : link_(mote::new_mote_link()) {}
+
+  MoteHardwareInterface(const MoteHardwareInterface&) = delete;
+  MoteHardwareInterface& operator=(const MoteHardwareInterface&) = delete;
+  MoteHardwareInterface(MoteHardwareInterface&&) = delete;
+  MoteHardwareInterface& operator=(MoteHardwareInterface&&) = delete;
+
+  ~MoteHardwareInterface() override {
+    boost::system::error_code ec;
+    socket_.close(ec);
+    io_ctx_.stop();
+    if (io_thread_.joinable()) {
+      io_thread_.join();
+    }
+  }
+
+  bool init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh) override {
     std::string robot_ip;
     if (!robot_hw_nh.getParam("robot_ip", robot_ip)) {
       ROS_FATAL("mote_node: ~robot_ip parameter is required");
@@ -57,34 +213,25 @@ public:
     robot_hw_nh.param<std::string>("laser_frame", laser_frame_, "laser");
     robot_hw_nh.param<std::string>("imu_frame", imu_frame_, "imu_link");
 
-    // Register hardware interfaces for left_wheel and right_wheel
-    const char *joint_names[2] = {"left_wheel", "right_wheel"};
-    for (int i = 0; i < 2; ++i) {
-      jnt_state_iface_.registerHandle(hardware_interface::JointStateHandle(
-          joint_names[i], &pos_[i], &vel_[i], &eff_[i]));
-      jnt_vel_iface_.registerHandle(hardware_interface::JointHandle(
-          jnt_state_iface_.getHandle(joint_names[i]), &cmd_[i]));
+    // Register hardware interfaces for left_wheel and right_wheel.
+    for (std::size_t i{0}; i < kJointNames.size(); ++i) {
+      jnt_state_iface_.registerHandle(
+          hardware_interface::JointStateHandle(kJointNames[i], &pos_[i], &vel_[i], &eff_[i]));
+      jnt_vel_iface_.registerHandle(
+          hardware_interface::JointHandle(jnt_state_iface_.getHandle(kJointNames[i]), &cmd_[i]));
     }
     registerInterface(&jnt_state_iface_);
     registerInterface(&jnt_vel_iface_);
 
-    // Open UDP socket and connect to robot
-    udp_fd_ = ::socket(AF_INET, SOCK_DGRAM, 0);
-    if (udp_fd_ < 0) {
-      ROS_FATAL("mote_node: socket() failed: %s", std::strerror(errno));
-      return false;
-    }
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(static_cast<uint16_t>(UDP_PORT));
-    if (inet_pton(AF_INET, robot_ip.c_str(), &addr.sin_addr) != 1) {
-      ROS_FATAL("mote_node: invalid robot_ip '%s'", robot_ip.c_str());
-      return false;
-    }
-    if (::connect(udp_fd_, reinterpret_cast<const sockaddr *>(&addr),
-                  sizeof(addr)) < 0) {
-      ROS_FATAL("mote_node: connect() to %s:%d failed: %s", robot_ip.c_str(),
-                UDP_PORT, std::strerror(errno));
+    // Open a UDP socket and connect to the robot.
+    try {
+      boost::asio::ip::udp::resolver resolver(io_ctx_);
+      const auto endpoints =
+          resolver.resolve(boost::asio::ip::udp::v4(), robot_ip, std::to_string(UDP_PORT));
+      socket_.open(boost::asio::ip::udp::v4());
+      socket_.connect(*endpoints.begin());
+    } catch (const boost::system::system_error& e) {
+      ROS_FATAL("mote_node: failed to connect to %s:%d: %s", robot_ip.c_str(), UDP_PORT, e.what());
       return false;
     }
 
@@ -94,12 +241,12 @@ public:
     imu_pub_ = root_nh.advertise<sensor_msgs::Imu>("imu/data", 1);
 
     // Send a keepalive Ping every second
-    keepalive_timer_ = root_nh.createTimer(
-        ros::Duration(1.0), &MoteHardwareInterface::keepalive_cb, this);
+    keepalive_timer_ =
+        root_nh.createTimer(ros::Duration(1.0), &MoteHardwareInterface::keepalive_cb, this);
 
-    // Start background UDP receive thread
-    running_.store(true);
-    recv_thread_ = std::thread(&MoteHardwareInterface::recv_thread_fn, this);
+    // Start the background UDP receive loop.
+    start_receive();
+    io_thread_ = std::thread([this] { io_ctx_.run(); });
 
     ROS_INFO("mote_node: connected to %s:%d", robot_ip.c_str(), UDP_PORT);
     return true;
@@ -108,7 +255,7 @@ public:
   // Called at the start of each control loop iteration.
   // Drains decoded messages from the link, updates joint state buffers,
   // and publishes sensor topics.
-  void read(const ros::Time &time, const ros::Duration & /*period*/) override {
+  void read(const ros::Time& time, const ros::Duration& /*period*/) override {
     while (true) {
       mote::ReceiveResult result;
       {
@@ -116,17 +263,16 @@ public:
         result = link_->poll_receive();
       }
       if (result.error != mote::MoteLinkErrorCode::None) {
-        // Corrupt or undeserializable frame — already consumed from the queue.
-        // Continue draining rather than dropping all subsequent messages.
-        ROS_WARN_THROTTLE(5.0, "mote_node: poll_receive error: %s",
-                          result.error_message.c_str());
+        // Corrupt or undeserializable frame
+        ROS_WARN_THROTTLE(5.0, "mote_node: poll_receive error: %s", result.error_message.c_str());
         continue;
       }
-      if (result.json_message.empty())
+      if (result.json_message.empty()) {
         break;
+      }
       try {
         dispatch(json::parse(result.json_message.c_str()), time);
-      } catch (const json::exception &e) {
+      } catch (const json::exception& e) {
         ROS_WARN_THROTTLE(5.0, "mote_node: JSON parse error: %s", e.what());
       }
     }
@@ -134,14 +280,10 @@ public:
 
   // Called after cm.update(). Sends the velocity commands set by the
   // controller.
-  void write(const ros::Time & /*time*/,
-             const ros::Duration & /*period*/) override {
+  void write(const ros::Time& /*time*/, const ros::Duration& /*period*/) override {
     json cmd = {{"SetDriveBaseVelocity",
-                 {{"left_velocity_rad_per_s", cmd_[0]},
-                  {"right_velocity_rad_per_s", cmd_[1]}}}};
+                 {{"left_velocity_rad_per_s", cmd_[0]}, {"right_velocity_rad_per_s", cmd_[1]}}}};
     const std::string cmd_str = cmd.dump();
-
-    // ROS_INFO_THROTTLE(0.5, "Commands - Left: %f, Right: %f", cmd_[0], cmd_[1]);
 
     std::lock_guard<std::mutex> lk(link_mutex_);
 
@@ -152,231 +294,51 @@ public:
     }
 
     mote::SendResult result = link_->send(cmd_str);
-    if (result.error != mote::MoteLinkErrorCode::None)
-      ROS_WARN_THROTTLE(5.0, "mote_node: send failed: %s",
-                        result.error_message.c_str());
+    if (result.error != mote::MoteLinkErrorCode::None) {
+      ROS_WARN_THROTTLE(5.0, "mote_node: send failed: %s", result.error_message.c_str());
+    }
 
     flush_transmit();
-  }
-
-private:
-  // Joint state buffers indexed [0]=left_wheel, [1]=right_wheel
-  double pos_[2] = {0.0, 0.0};
-  double vel_[2] = {0.0, 0.0};
-  double eff_[2] = {0.0, 0.0};
-  double cmd_[2] = {
-      0.0, 0.0}; // written by diff_drive_controller via VelocityJointInterface
-
-  hardware_interface::JointStateInterface jnt_state_iface_;
-  hardware_interface::VelocityJointInterface jnt_vel_iface_;
-
-  ::rust::Box<::mote::MoteLink> link_;
-  std::mutex link_mutex_;
-  bool pending_pong_ = false; // set in read(), cleared in write()
-
-  int udp_fd_ = -1;
-  std::thread recv_thread_;
-  std::atomic<bool> running_{false};
-
-  ros::Publisher scan_pub_;
-  ros::Publisher imu_pub_;
-  ros::Timer keepalive_timer_;
-  std::string laser_frame_;
-  std::string imu_frame_;
-
-  struct RawScanPoint { float angle_rad; float distance_mm; };
-  std::vector<RawScanPoint> scan_accum_;
-  ros::Time                 scan_accum_stamp_;
-  float                     scan_prev_angle_ = -1.0f;  // -1 = no previous point
-
-  // Drain all pending transmit packets from the link and send over UDP.
-  // Must be called with link_mutex_ held.
-  void flush_transmit() {
-    while (true) {
-      ::rust::Vec<std::uint8_t> pkt = link_->poll_transmit();
-      if (pkt.empty())
-        break;
-      if (::send(udp_fd_, pkt.data(), pkt.size(), 0) < 0)
-        ROS_WARN_THROTTLE(5.0, "mote_node: UDP send() failed: %s",
-                          std::strerror(errno));
-    }
-  }
-
-  // Background thread: feeds raw UDP packets into the link for decoding.
-  // Uses select() with a 100 ms timeout to allow clean shutdown.
-  void recv_thread_fn() {
-    std::vector<uint8_t> buf(UDP_BUF_SIZE);
-    while (running_.load()) {
-      fd_set rfds;
-      FD_ZERO(&rfds);
-      FD_SET(udp_fd_, &rfds);
-      struct timeval tv{0, 100000}; // 100 ms
-      const int r = ::select(udp_fd_ + 1, &rfds, nullptr, nullptr, &tv);
-      if (r < 0) {
-        if (errno == EINTR || errno == EBADF)
-          break;
-        ROS_WARN_THROTTLE(5.0, "mote_node: select() error: %s",
-                          std::strerror(errno));
-        continue;
-      }
-      if (r == 0)
-        continue; // timeout — check running_ and loop
-
-      const ssize_t n = ::recv(udp_fd_, buf.data(), buf.size(), 0);
-      if (n <= 0)
-        continue;
-
-      std::lock_guard<std::mutex> lk(link_mutex_);
-      link_->handle_receive(
-          ::rust::Slice<const std::uint8_t>(buf.data(), static_cast<std::size_t>(n)));
-    }
-  }
-
-  // Sends a Ping to the robot once per second to keep the link alive.
-  void keepalive_cb(const ros::TimerEvent &) {
-    std::lock_guard<std::mutex> lk(link_mutex_);
-    link_->send("\"Ping\"");
-    flush_transmit();
-  }
-
-  // Route a decoded JSON message to the appropriate handler.
-  void dispatch(const json &msg, const ros::Time &stamp) {
-    if (msg.is_string()) {
-      // Ping from robot: queue a Pong reply (sent in write())
-      if (msg.get<std::string>() == "Ping")
-        pending_pong_ = true;
-      return;
-    }
-    if (!msg.is_object())
-      return;
-
-    if (msg.contains("DriveBaseState"))
-      update_joint_state(msg["DriveBaseState"]);
-    if (msg.contains("Scan"))
-      publish_scan(msg["Scan"], stamp);
-    if (msg.contains("ImuMeasurement"))
-      publish_imu(msg["ImuMeasurement"], stamp);
-    if (msg.contains("State"))
-      ROS_DEBUG_STREAM(
-          "mote_node: device state update: " << msg["State"].dump());
-  }
-
-  // Update joint state buffers from a DriveBaseState message.
-  void update_joint_state(const json &state) {
-    pos_[0] = state["left"]["position_rad"].get<double>();
-    pos_[1] = state["right"]["position_rad"].get<double>();
-    vel_[0] = state["left"]["velocity_rad_per_s"].get<double>();
-    vel_[1] = state["right"]["velocity_rad_per_s"].get<double>();
-    eff_[0] = state["left"]["effort_percent"].get<double>();
-    eff_[1] = state["right"]["effort_percent"].get<double>();
-  }
-
-  // Accumulate raw scan points and publish one LaserScan per full rotation.
-  // A rotation boundary is detected when the incoming angle wraps back to near
-  // 0 — i.e. drops by more than π from the previous point's angle.
-  void publish_scan(const json &points, const ros::Time &stamp) {
-    const float two_pi = 2.0f * static_cast<float>(M_PI);
-
-    for (const auto &pt : points) {
-      if (pt["quality"].get<int>() == 0)
-        continue;
-
-      float angle = std::fmod(pt["angle_rad"].get<float>(), two_pi);
-      if (angle < 0.0f) angle += two_pi;
-
-      // A drop of more than π signals the start of a new rotation.
-      if (scan_prev_angle_ >= 0.0f && angle < scan_prev_angle_ - static_cast<float>(M_PI))
-        flush_scan(stamp);
-
-      if (scan_accum_.empty())
-        scan_accum_stamp_ = stamp;
-
-      scan_accum_.push_back({angle, pt["distance_mm"].get<float>()});
-      scan_prev_angle_ = angle;
-    }
-  }
-
-  // Rasterize all accumulated points onto a fixed 1° grid and publish.
-  void flush_scan(const ros::Time & /*stamp*/) {
-    if (scan_accum_.empty()) return;
-
-    sensor_msgs::LaserScan msg;
-    msg.header.stamp    = scan_accum_stamp_;
-    msg.header.frame_id = laser_frame_;
-    msg.angle_min       = 0.0f;
-    msg.angle_max       = 2.0f * static_cast<float>(M_PI) - SCAN_ANGLE_INC;
-    msg.angle_increment = SCAN_ANGLE_INC;
-    msg.range_min       = 0.05f;  // 5 cm
-    msg.range_max       = 12.0f;  // 12 m (RPLiDAR C1 max range)
-    msg.ranges.assign(SCAN_BINS, std::numeric_limits<float>::infinity());
-
-    for (const auto &pt : scan_accum_) {
-      int bin = static_cast<int>(pt.angle_rad / SCAN_ANGLE_INC);
-      bin = std::max(0, std::min(bin, SCAN_BINS - 1));
-      float dist_m = pt.distance_mm / 1000.0f;
-      if (dist_m < msg.ranges[bin])
-        msg.ranges[SCAN_BINS - 1 - bin] = dist_m; // doing scan_bins - 1 - bin to essentially reverse array, ros expects ccw scans
-    }
-
-    scan_pub_.publish(msg);
-    scan_accum_.clear();
-  }
-
-  // Publish an IMU message. Orientation is unknown (covariance[0] = -1 per
-  // REP-145).
-  void publish_imu(const json &imu, const ros::Time &stamp) {
-    sensor_msgs::Imu msg;
-    msg.header.stamp = stamp;
-    msg.header.frame_id = imu_frame_;
-
-    msg.orientation_covariance[0] = -1.0; // orientation unknown
-
-    msg.linear_acceleration.x = imu["accel"]["x"].get<double>();
-    msg.linear_acceleration.y = imu["accel"]["y"].get<double>();
-    msg.linear_acceleration.z = imu["accel"]["z"].get<double>();
-
-    msg.angular_velocity.x = imu["gyro"]["x"].get<double>();
-    msg.angular_velocity.y = imu["gyro"]["y"].get<double>();
-    msg.angular_velocity.z = imu["gyro"]["z"].get<double>();
-
-    imu_pub_.publish(msg);
   }
 };
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ros::init(argc, argv, "mote_node");
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
 
-  MoteHardwareInterface robot;
-  if (!robot.init(nh, pnh)) {
-    ROS_FATAL("mote_node: initialization failed, shutting down");
+  try {
+    MoteHardwareInterface robot;
+    if (!robot.init(nh, pnh)) {
+      ROS_FATAL("mote_node: initialization failed, shutting down");
+      return 1;
+    }
+
+    controller_manager::ControllerManager cm(&robot, nh);
+
+    // Process ROS callbacks in a background thread
+    ros::AsyncSpinner spinner(1);
+    spinner.start();
+
+    ros::Rate rate(100.0);
+    ros::Time last = ros::Time::now();
+
+    while (ros::ok()) {
+      const ros::Time now = ros::Time::now();
+      const ros::Duration dt = now - last;
+
+      robot.read(now, dt);
+      cm.update(now, dt);
+      robot.write(now, dt);
+
+      last = now;
+      rate.sleep();
+    }
+
+    spinner.stop();
+    return 0;
+  } catch (const std::exception& e) {
+    ROS_FATAL("mote_node: unhandled exception, shutting down: %s", e.what());
     return 1;
   }
-
-  controller_manager::ControllerManager cm(&robot, nh);
-
-  // Process ROS callbacks (CM service calls, keepalive timer, etc.) in a
-  // background thread.  This prevents controller_manager::loadController()'s
-  // internal double-buffer busy-wait from blocking the cm.update() calls below.
-  ros::AsyncSpinner spinner(1);
-  spinner.start();
-
-  ros::Rate rate(50.0);
-  ros::Time last = ros::Time::now();
-
-  while (ros::ok()) {
-    const ros::Time now = ros::Time::now();
-    const ros::Duration dt = now - last;
-
-    robot.read(now, dt);
-    cm.update(now, dt);
-    robot.write(now, dt);
-
-    last = now;
-    rate.sleep();
-  }
-
-  spinner.stop();
-  return 0;
 }
