@@ -11,3 +11,7 @@ ROBOT_IP=192.168.x.x docker compose up --build
 ```
 
 Open your browser to https://app.foxglove.dev/ and connect to ws://localhost:8765
+
+## Development
+
+Open this repo in VS Code with the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension and "Reopen in Container" for a full build environment.

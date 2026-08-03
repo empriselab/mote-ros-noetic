@@ -149,17 +149,20 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
     }
   }
 
-  [[nodiscard]] sensor_msgs::LaserScan build_laser_scan_msg(const std::vector<float>& ranges,
+  // sensor_msgs::LaserScan fields are float32 per the ROS message definition, so the
+  // internally-computed doubles are narrowed here, at the point of publishing.
+  [[nodiscard]] sensor_msgs::LaserScan build_laser_scan_msg(const mote_base::RasterizedScan& scan,
                                                             const ros::Time& stamp) const {
     sensor_msgs::LaserScan msg;
     msg.header.stamp = stamp;
     msg.header.frame_id = laser_frame_;
     msg.angle_min = 0.0f;
-    msg.angle_max = 2.0f * static_cast<float>(M_PI) - ScanRasterizer::kScanAngleInc;
-    msg.angle_increment = ScanRasterizer::kScanAngleInc;
-    msg.range_min = ScanRasterizer::kRangeMin;
-    msg.range_max = ScanRasterizer::kRangeMax;
-    msg.ranges = ranges;
+    msg.angle_max = static_cast<float>(2.0 * M_PI - ScanRasterizer::kScanAngleInc);
+    msg.angle_increment = static_cast<float>(ScanRasterizer::kScanAngleInc);
+    msg.range_min = static_cast<float>(ScanRasterizer::kRangeMin);
+    msg.range_max = static_cast<float>(ScanRasterizer::kRangeMax);
+    msg.ranges.assign(scan.ranges.begin(), scan.ranges.end());
+    msg.intensities.assign(scan.intensities.begin(), scan.intensities.end());
     return msg;
   }
 
@@ -317,7 +320,7 @@ int main(int argc, char** argv) {
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    ros::Rate rate(50.0);
+    ros::Rate rate(100.0);
     ros::Time last = ros::Time::now();
 
     while (ros::ok()) {

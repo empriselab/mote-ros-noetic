@@ -45,8 +45,9 @@ TEST(Messages, ScanPointsFiltersZeroQuality) {
 
   const auto out = parse_scan_points(points);
   ASSERT_EQ(out.size(), 1u);
-  EXPECT_FLOAT_EQ(out[0].angle_rad, 2.0f);
-  EXPECT_FLOAT_EQ(out[0].distance_mm, 200.0f);
+  EXPECT_DOUBLE_EQ(out[0].angle_rad, 2.0);
+  EXPECT_DOUBLE_EQ(out[0].distance_mm, 200.0);
+  EXPECT_DOUBLE_EQ(out[0].intensity, 10.0);
 }
 
 TEST(Messages, ScanPointsEmptyWhenAllFiltered) {
