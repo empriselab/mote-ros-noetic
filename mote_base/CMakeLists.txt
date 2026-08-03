@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14) # Increased for FetchContent support
+cmake_minimum_required(VERSION 3.14)
 project(mote_base)
 
 add_compile_options(-Wall -Wextra -Wpedantic)
@@ -13,8 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost REQUIRED COMPONENTS system)
 
-# --- nlohmann_json via FetchContent ---
-# This replaces the system find_package that was failing
 include(FetchContent)
 FetchContent_Declare(nlohmann_json
   URL "https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz"
@@ -24,8 +22,6 @@ FetchContent_MakeAvailable(nlohmann_json)
 
 catkin_package()
 
-# --- libmote_ffi ---
-# Logic to handle the Rust FFI library
 set(MOTE_FFI_VERSION "0.2.1")
 
 if(NOT DEFINED MOTE_FFI_DIR)
@@ -47,12 +43,8 @@ set_target_properties(mote_ffi_static PROPERTIES
   IMPORTED_LOCATION "${MOTE_FFI_DIR}/libmote_ffi.a"
 )
 
-# --- mote_node executable ---
 add_executable(mote_node src/mote_node.cpp)
 
-# MOTE_FFI_DIR is resolved at CMake-configure time by FetchContent above, so
-# catkin_lint's static analysis can't evaluate it and treats it as blank --
-# a false positive for a directory that genuinely exists once configured.
 #catkin_lint: ignore_once missing_directory external_directory
 target_include_directories(mote_node PRIVATE
   include
@@ -74,7 +66,6 @@ target_link_libraries(mote_node
 
 target_compile_features(mote_node PRIVATE cxx_std_17)
 
-# --- Installation ---
 install(TARGETS mote_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
@@ -83,7 +74,6 @@ install(DIRECTORY launch config
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-# --- Tests ---
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(test_scan_rasterizer test/test_scan_rasterizer.cpp)
   target_include_directories(test_scan_rasterizer PRIVATE include)

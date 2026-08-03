@@ -1,9 +1,5 @@
 services:
   mote:
-    # Pulls ghcr.io/empriselab/mote-ros-noetic:latest by default (pull_policy:
-    # always makes `docker compose up` always fetch the current remote image,
-    # ignoring any local build). Pass --build (`docker compose up --build` or
-    # `docker compose build`) to build from the local Dockerfile instead.
     image: ghcr.io/empriselab/mote-ros-noetic:latest
     pull_policy: always
     build:
@@ -15,10 +11,4 @@ services:
     environment:
       # Required
       ROBOT_IP: ${ROBOT_IP}
-      # Flush Python (roslaunch/spawner) stdout immediately so docker logs shows output
       PYTHONUNBUFFERED: "1"
-      # Optional overrides (leave unset to use defaults from controllers.yaml / launch file)
-      # WHEEL_SEPARATION: "0.15"
-      # WHEEL_RADIUS: "0.033"
-      # LASER_FRAME: "laser"
-      # IMU_FRAME: "imu_link"

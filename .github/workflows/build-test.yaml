@@ -6,8 +6,6 @@ on:
   pull_request:
     branches: [ main ]
 
-# Steps run in a `container:` default to `sh`, not `bash`, unless told
-# otherwise -- and `source` isn't a POSIX sh builtin.
 defaults:
   run:
     shell: bash

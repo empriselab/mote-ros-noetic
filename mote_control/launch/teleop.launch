@@ -1,9 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- Keyboard teleop, publishing geometry_msgs/Twist on cmd_vel (consumed by
-       diff_drive_controller; see mote_control/config/control.yaml).
-       teleop_twist_keyboard reads raw keystrokes from stdin, so it needs a
-       real interactive terminal; launch-prefix opens one via xterm. -->
   <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_twist_keyboard"
-        output="screen" launch-prefix="xterm -e" />
+        output="screen" />
 </launch>

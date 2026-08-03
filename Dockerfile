@@ -1,11 +1,4 @@
-# Build context must be the mote-ros-noetic/ directory.
-# Build command: docker build -t mote-ros-noetic .
-#
-# This image is meant to be used as a base by downstream repos (e.g. students
-# writing their own nodes against the robot), so it keeps the full build
-# toolchain (build-essential, cmake, rosdep build deps) rather than stripping
-# it down to a slim runtime-only image — anyone building on top needs to be
-# able to add a package and run catkin_make again.
+# docker build -t mote-ros-noetic .
 FROM ros:noetic-ros-base
 
 # Install bare build tools (rosdep handles all ROS/package deps below).
@@ -14,11 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy every package's package.xml first so rosdep can install ROS deps as a
-# cached layer — this layer only re-runs when a package.xml changes, not on
-# every source edit. (Copying just mote_base/package.xml here would leave
-# rosdep blind to the other 5 packages' dependencies, since --from-paths only
-# sees what's been copied in by this point.)
+# Copy every package's package.xml first so rosdep can install ROS deps as a cached layer
 WORKDIR /catkin_ws/src/mote_ros_noetic
 COPY mote_base/package.xml mote_base/package.xml
 COPY mote_control/package.xml mote_control/package.xml
@@ -33,7 +22,6 @@ RUN apt-get update && \
     rosdep install --from-paths src --ignore-src -r -y --include-eol-distros
 
 # Copy full source and build the catkin workspace.
-# CMakeLists.txt downloads libmote_ffi from GitHub releases at configure time.
 COPY . src/mote_ros_noetic/
 
 RUN /bin/bash -c "\

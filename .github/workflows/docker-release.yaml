@@ -17,8 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Multi-arch (linux/amd64 + linux/arm64) via a single emulated build
-      # rather than a native runner matrix -- simpler workflow, slower build.
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
