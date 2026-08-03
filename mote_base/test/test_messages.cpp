@@ -37,9 +37,9 @@ TEST(Messages, ParsesImuMeasurement) {
   EXPECT_DOUBLE_EQ(out.gyro_z, 6.0);
 }
 
-TEST(Messages, ScanPointsFiltersZeroQuality) {
+TEST(Messages, ScanPointsFiltersTooClose) {
   const json points = {
-      {{"quality", 0}, {"angle_rad", 1.0}, {"distance_mm", 100.0}},
+      {{"quality", 10}, {"angle_rad", 1.0}, {"distance_mm", 30.0}},
       {{"quality", 10}, {"angle_rad", 2.0}, {"distance_mm", 200.0}},
   };
 
@@ -52,7 +52,7 @@ TEST(Messages, ScanPointsFiltersZeroQuality) {
 
 TEST(Messages, ScanPointsEmptyWhenAllFiltered) {
   const json points = {
-      {{"quality", 0}, {"angle_rad", 1.0}, {"distance_mm", 100.0}},
+      {{"quality", 10}, {"angle_rad", 1.0}, {"distance_mm", 30.0}},
   };
 
   const auto out = parse_scan_points(points);

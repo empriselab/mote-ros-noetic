@@ -20,8 +20,8 @@ TEST(ScanRasterizer, AccumulatesWithoutCompletingUntilWrap) {
 
 TEST(ScanRasterizer, WrapCompletesRotationAndStartsNewOne) {
   ScanRasterizer rasterizer;
-  rasterizer.add_point({0.0, 1000.0, 10.0});  // bin 0   -> stored at index 359
-  rasterizer.add_point({6.0, 2000.0, 20.0});  // bin 343 -> stored at index 16
+  rasterizer.add_point({0.0, 1000.0, 10.0});  // bin 0   -> stored at index 719
+  rasterizer.add_point({6.0, 2000.0, 20.0});  // bin 687 -> stored at index 32
 
   // 0.05 rad is well below (6.0 - pi), so this triggers a wrap.
   auto completed = rasterizer.add_point({0.05, 500.0, 30.0});
@@ -29,10 +29,10 @@ TEST(ScanRasterizer, WrapCompletesRotationAndStartsNewOne) {
   EXPECT_EQ(completed->ranges.size(), static_cast<std::size_t>(ScanRasterizer::kScanBins));
   EXPECT_EQ(completed->intensities.size(), static_cast<std::size_t>(ScanRasterizer::kScanBins));
 
-  EXPECT_NEAR(completed->ranges[359], 1.0, 1e-4);
-  EXPECT_NEAR(completed->intensities[359], 10.0, 1e-4);
-  EXPECT_NEAR(completed->ranges[16], 2.0, 1e-4);
-  EXPECT_NEAR(completed->intensities[16], 20.0, 1e-4);
+  EXPECT_NEAR(completed->ranges[719], 1.0, 1e-4);
+  EXPECT_NEAR(completed->intensities[719], 10.0, 1e-4);
+  EXPECT_NEAR(completed->ranges[32], 2.0, 1e-4);
+  EXPECT_NEAR(completed->intensities[32], 20.0, 1e-4);
   EXPECT_EQ(completed->ranges[100], std::numeric_limits<double>::infinity());
   EXPECT_EQ(completed->intensities[100], 0.0);
 
@@ -50,12 +50,12 @@ TEST(ScanRasterizer, KeepsClosestPointPerBin) {
   // Force a wrap to inspect the rasterized result.
   completed = rasterizer.add_point({0.0, 999.0, 35.0});
   ASSERT_TRUE(completed.has_value());
-  EXPECT_NEAR(completed->ranges[359], 0.5, 1e-4);
-  EXPECT_NEAR(completed->intensities[359], 15.0, 1e-4);
+  EXPECT_NEAR(completed->ranges[719], 0.5, 1e-4);
+  EXPECT_NEAR(completed->intensities[719], 15.0, 1e-4);
 }
 
 TEST(ScanRasterizer, ScanBinsConstantsAreConsistent) {
-  EXPECT_EQ(ScanRasterizer::kScanBins, 360);
+  EXPECT_EQ(ScanRasterizer::kScanBins, 720);
   EXPECT_NEAR(ScanRasterizer::kScanAngleInc * ScanRasterizer::kScanBins, 2.0 * M_PI, 1e-4);
   EXPECT_LT(ScanRasterizer::kRangeMin, ScanRasterizer::kRangeMax);
 }

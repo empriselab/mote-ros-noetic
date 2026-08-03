@@ -47,7 +47,7 @@ inline ImuMeasurement parse_imu_measurement(const nlohmann::json& imu) {
   return out;
 }
 
-// Parses a Scan message's point array, filtering out zero-quality (invalid)
+// Parses a Scan message's point array, filtering out too-close (invalid)
 // readings, ready to feed into ScanRasterizer::add_point.
 inline std::vector<RawScanPoint> parse_scan_points(const nlohmann::json& points) {
   std::vector<RawScanPoint> out;
@@ -57,7 +57,7 @@ inline std::vector<RawScanPoint> parse_scan_points(const nlohmann::json& points)
       continue;
     }
     out.push_back({pt["angle_rad"].get<double>(), pt["distance_mm"].get<double>(),
-                    pt["quality"].get<double>()});
+                   pt["quality"].get<double>()});
   }
   return out;
 }
