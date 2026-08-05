@@ -210,8 +210,8 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
       ROS_FATAL("mote_node: ~robot_ip parameter is required");
       return false;
     }
-    robot_hw_nh.param<std::string>("laser_frame", laser_frame_, "laser");
-    robot_hw_nh.param<std::string>("imu_frame", imu_frame_, "imu_link");
+    robot_hw_nh.param<std::string>("laser_frame", laser_frame_, "lidar");
+    robot_hw_nh.param<std::string>("imu_frame", imu_frame_, "imu");
 
     // Register hardware interfaces for left_wheel and right_wheel.
     for (std::size_t i{0}; i < kJointNames.size(); ++i) {

@@ -7,8 +7,8 @@
   <arg name="wheel_radius"     default="0.033" />
 
   <!-- TF frame IDs -->
-  <arg name="laser_frame" default="laser" />
-  <arg name="imu_frame"   default="imu_link" />
+  <arg name="laser_frame" default="lidar" />
+  <arg name="imu_frame"   default="imu" />
 
   <!-- Sensor positions relative to base_link (meters / radians).
        Adjust these to match your robot's physical layout. -->
@@ -38,12 +38,9 @@
   <node pkg="controller_manager" type="spawner" name="controller_spawner"
         args="diff_drive_controller joint_state_controller" output="screen" />
 
-  <!-- Static transforms: sensor frames relative to base_link -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="laser_tf"
-        args="$(arg laser_x) $(arg laser_y) $(arg laser_z) $(arg laser_yaw) 0 0 base_link $(arg laser_frame)" />
-  <node pkg="tf2_ros" type="static_transform_publisher" name="imu_tf"
-        args="$(arg imu_x) $(arg imu_y) $(arg imu_z) 0 0 0 base_link $(arg imu_frame)" />
+  <!-- Serve URDF -->
+  <include file="$(find mote_description)/launch/description.launch"/>
 
-  <!-- Foxglove Bridge — connect Foxglove Studio to ws://<host>:8765 -->
-  <node pkg="foxglove_bridge" type="foxglove_bridge" name="foxglove_bridge" output="screen" />
+  <!-- Publish static transforms from the URDF -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 </launch>
