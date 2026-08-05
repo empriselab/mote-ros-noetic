@@ -1,0 +1,9 @@
+{
+    "documentId": "1587a90b12bee427526d37dc",
+    "outputFormat": "urdf",
+    "assemblyName": "simulation_robot",
+    "mergeSTLs": "visual",
+    "packageName": "mote_description/description/mote",
+    "addDummyBaseLink": true,
+    "robotName": "mote"
+}

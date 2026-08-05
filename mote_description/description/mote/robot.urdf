@@ -1,143 +1,539 @@
-<?xml version="1.0"?>
-<!-- Mote robot URDF
-     Wheel geometry: separation=0.15 m, radius=0.033 m
-     Joint names match mote_control/config/control.yaml (left_wheel, right_wheel)
-     Sensor frame names match mote_base/launch/mote.launch (laser, imu_link)
-
-     NOTE: Visual geometry uses simple primitives as placeholders.
-     Replace with mote-specific mesh files once available. -->
+<?xml version="1.0" ?>
+<!-- Generated using onshape-to-robot -->
+<!-- Onshape document_id: 1587a90b12bee427526d37dc -->
 <robot name="mote">
-
-  <!-- ======================== Base ======================== -->
-  <link name="base_link"/>
-
-  <joint name="base_link_to_chassis" type="fixed">
-    <parent link="base_link"/>
-    <child link="chassis"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
-
-  <link name="chassis">
+  <!-- Link base_link -->
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+  </link>
+  <!-- Link robot_body -->
+  <link name="robot_body">
+    <inertial>
+      <origin xyz="-0.0189166 -0.000422193 0.052482" rpy="0 0 0"/>
+      <mass value="0.276245"/>
+      <inertia ixx="0.000421169" ixy="2.90441e-07" ixz="-0.000143429" iyy="0.00048607" iyz="7.7835e-08" izz="0.000486221"/>
+    </inertial>
+    <!-- Part tt_motor_3777_v10 -->
     <visual>
-      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
       <geometry>
-        <box size="0.15 0.12 0.06"/>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10.stl"/>
       </geometry>
-      <material name="grey">
-        <color rgba="0.5 0.5 0.5 1.0"/>
+      <material name="tt_motor_3777_v10_material">
+        <color rgba="0.964706 0.964706 0.952941 1"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
       <geometry>
-        <box size="0.15 0.12 0.06"/>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10.stl"/>
       </geometry>
     </collision>
-    <inertial>
-      <origin xyz="0 0 0.04" rpy="0 0 0"/>
-      <mass value="0.5"/>
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial>
-  </link>
-
-  <!-- ======================== Left wheel ======================== -->
-  <!-- joint name must match left_wheel entry in control.yaml -->
-  <joint name="left_wheel" type="continuous">
-    <parent link="chassis"/>
-    <child link="left_wheel_link"/>
-    <!-- y = +wheel_separation/2 = +0.075 m, z = wheel_radius = 0.033 m -->
-    <origin xyz="0 0.075 0.033" rpy="-1.5707963267948966 0 0"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="1" velocity="20"/>
-  </joint>
-
-  <link name="left_wheel_link">
+    <!-- Part right_motor_mount_top -->
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="2.669e-09 0.0370321 0.0457" rpy="0 -0 -1.5708"/>
       <geometry>
-        <cylinder radius="0.033" length="0.025"/>
+        <mesh filename="package://mote_description/description/mote/assets/right_motor_mount_top.stl"/>
       </geometry>
-      <material name="yellow">
-        <color rgba="0.98 0.71 0.004 1.0"/>
+      <material name="right_motor_mount_top_material">
+        <color rgba="0.34902 0.376471 0.4 1"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="2.669e-09 0.0370321 0.0457" rpy="0 -0 -1.5708"/>
       <geometry>
-        <cylinder radius="0.033" length="0.025"/>
+        <mesh filename="package://mote_description/description/mote/assets/right_motor_mount_top.stl"/>
       </geometry>
     </collision>
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.06"/>
-      <inertia ixx="2.3e-5" ixy="0" ixz="0" iyy="2.3e-5" iyz="0" izz="3.8e-5"/>
-    </inertial>
-  </link>
-
-  <!-- ======================== Right wheel ======================== -->
-  <!-- joint name must match right_wheel entry in control.yaml -->
-  <joint name="right_wheel" type="continuous">
-    <parent link="chassis"/>
-    <child link="right_wheel_link"/>
-    <!-- y = -wheel_separation/2 = -0.075 m, z = wheel_radius = 0.033 m -->
-    <origin xyz="0 -0.075 0.033" rpy="-1.5707963267948966 0 0"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="1" velocity="20"/>
-  </joint>
-
-  <link name="right_wheel_link">
+    <!-- Part tt_motor_3777_v10_2 -->
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
       <geometry>
-        <cylinder radius="0.033" length="0.025"/>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__2.stl"/>
       </geometry>
-      <material name="yellow">
-        <color rgba="0.98 0.71 0.004 1.0"/>
+      <material name="tt_motor_3777_v10_2_material">
+        <color rgba="0.960784 0.960784 0.964706 1"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
       <geometry>
-        <cylinder radius="0.033" length="0.025"/>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__2.stl"/>
       </geometry>
     </collision>
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.06"/>
-      <inertia ixx="2.3e-5" ixy="0" ixz="0" iyy="2.3e-5" iyz="0" izz="3.8e-5"/>
-    </inertial>
+    <!-- Part spacer -->
+    <visual>
+      <origin xyz="2.669e-09 -0.0173279 0.0325" rpy="1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/spacer.stl"/>
+      </geometry>
+      <material name="spacer_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.0173279 0.0325" rpy="1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/spacer.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_3 -->
+    <visual>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__2.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_3_material">
+        <color rgba="0.960784 0.960784 0.964706 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__2.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_4 -->
+    <visual>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__3.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_4_material">
+        <color rgba="0.627451 0.627451 0.627451 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__3.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_5 -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__4.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_5_material">
+        <color rgba="0.960784 0.960784 0.964706 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__4.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_6 -->
+    <visual>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__5.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_6_material">
+        <color rgba="0.0980392 0.0980392 0.0980392 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__5.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_7 -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__6.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_7_material">
+        <color rgba="0.627451 0.627451 0.627451 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__6.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tail_runner -->
+    <visual>
+      <origin xyz="2.669e-09 -0.000467935 0.0473" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tail_runner.stl"/>
+      </geometry>
+      <material name="tail_runner_material">
+        <color rgba="0.439216 0.47451 0.501961 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.000467935 0.0473" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tail_runner.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_8 -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__7.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_8_material">
+        <color rgba="1 0.976471 0.521569 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__7.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part spacer_2 -->
+    <visual>
+      <origin xyz="2.669e-09 0.0163921 0.0325" rpy="-1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/spacer.stl"/>
+      </geometry>
+      <material name="spacer_2_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0163921 0.0325" rpy="-1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/spacer.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part right_motor_mount_bottom -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0457" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/right_motor_mount_bottom.stl"/>
+      </geometry>
+      <material name="right_motor_mount_bottom_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0457" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/right_motor_mount_bottom.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_9 -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_9_material">
+        <color rgba="0.964706 0.964706 0.952941 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part left_motor_mount_top -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0457" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/left_motor_mount_top.stl"/>
+      </geometry>
+      <material name="left_motor_mount_top_material">
+        <color rgba="0.34902 0.376471 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0457" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/left_motor_mount_top.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_10 -->
+    <visual>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__4.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_10_material">
+        <color rgba="0.960784 0.960784 0.964706 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__4.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_11 -->
+    <visual>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__6.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_11_material">
+        <color rgba="0.627451 0.627451 0.627451 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__6.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_12 -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__8.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_12_material">
+        <color rgba="1 0.976471 0.521569 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__8.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part pcb -->
+    <visual>
+      <origin xyz="2.669e-09 -0.000467935 0.0457" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/pcb.stl"/>
+      </geometry>
+      <material name="pcb_material">
+        <color rgba="0.262745 0.282353 0.301961 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.000467935 0.0457" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/pcb.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_13 -->
+    <visual>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__8.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_13_material">
+        <color rgba="1 0.976471 0.521569 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__8.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part slamtec_rplidar_c1_v7 -->
+    <visual>
+      <origin xyz="-0.000614602 0.00014667 0.0647" rpy="0 -0 1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/slamtec_rplidar_c1_v7.stl"/>
+      </geometry>
+      <material name="slamtec_rplidar_c1_v7_material">
+        <color rgba="0.176471 0.176471 0.176471 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.000614602 0.00014667 0.0647" rpy="0 -0 1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/slamtec_rplidar_c1_v7.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part left_motor_mount_bottom -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0457" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/left_motor_mount_bottom.stl"/>
+      </geometry>
+      <material name="left_motor_mount_bottom_material">
+        <color rgba="0.647059 0.647059 0.647059 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0457" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/left_motor_mount_bottom.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_14 -->
+    <visual>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__7.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_14_material">
+        <color rgba="1 0.976471 0.521569 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.0379679 0.0325" rpy="-0 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__7.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_15 -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__5.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_15_material">
+        <color rgba="0.0980392 0.0980392 0.0980392 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__5.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part lidar_stand -->
+    <visual>
+      <origin xyz="2.669e-09 -0.000467935 0.0473" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/lidar_stand.stl"/>
+      </geometry>
+      <material name="lidar_stand_material">
+        <color rgba="0.34902 0.376471 0.4 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 -0.000467935 0.0473" rpy="0 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/lidar_stand.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part tt_motor_3777_v10_16 -->
+    <visual>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__3.stl"/>
+      </geometry>
+      <material name="tt_motor_3777_v10_16_material">
+        <color rgba="0.627451 0.627451 0.627451 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="2.669e-09 0.0370321 0.0325" rpy="-3.14159 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/tt_motor_3777_v10__3.stl"/>
+      </geometry>
+    </collision>
   </link>
-
-  <!-- ======================== Laser sensor frame ======================== -->
-  <!-- frame name matches laser_frame arg default in mote_base/launch/mote.launch -->
-  <joint name="laser_frame" type="fixed">
-    <parent link="chassis"/>
-    <child link="laser"/>
-    <origin xyz="0.0 0.0 0.1" rpy="0 0 1.5705"/>
-  </joint>
-
-  <link name="laser">
+  <!-- Frame lidar (dummy link + fixed joint) -->
+  <link name="lidar">
+    <origin xyz="0 0 0" rpy="0 -0 0"/>
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="1e-9"/>
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
     </inertial>
   </link>
-
-  <!-- ======================== IMU sensor frame ======================== -->
-  <!-- frame name matches imu_frame arg default in mote_base/launch/mote.launch -->
+  <joint name="lidar_frame" type="fixed">
+    <origin xyz="2.346e-09 -0.000467935 0.096" rpy="0 -0 0"/>
+    <parent link="robot_body"/>
+    <child link="lidar"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+  <!-- Frame imu (dummy link + fixed joint) -->
+  <link name="imu">
+    <origin xyz="0 0 0" rpy="0 -0 0"/>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-9"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+  </link>
   <joint name="imu_frame" type="fixed">
-    <parent link="chassis"/>
-    <child link="imu_link"/>
-    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+    <origin xyz="2.669e-09 -0.000467935 0.0457" rpy="3.14159 -0 0"/>
+    <parent link="robot_body"/>
+    <child link="imu"/>
+    <axis xyz="0 0 0"/>
   </joint>
-
-  <link name="imu_link">
+  <!-- Link wheel_left -->
+  <link name="wheel_left">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1e-9"/>
-      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+      <origin xyz="-0 -0 0.0163448" rpy="0 0 0"/>
+      <mass value="0.0653752"/>
+      <inertia ixx="2.83427e-05" ixy="-0" ixz="0" iyy="2.8342e-05" iyz="0" izz="4.80093e-05"/>
     </inertial>
+    <!-- Part wheel_left -->
+    <visual>
+      <origin xyz="0 -0 0.02994" rpy="3.14159 -0 -0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/wheel_left.stl"/>
+      </geometry>
+      <material name="wheel_left_material">
+        <color rgba="0.980392 0.713725 0.00392157 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 -0 0.02994" rpy="3.14159 -0 -0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/wheel_left.stl"/>
+      </geometry>
+    </collision>
   </link>
-
+  <!-- Joint from robot_body to wheel_left -->
+  <joint name="left_wheel" type="continuous">
+    <origin xyz="2.669e-09 0.0493321 0.0325" rpy="-1.5708 1.30857 0"/>
+    <parent link="robot_body"/>
+    <child link="wheel_left"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10"/>
+  </joint>
+  <!-- Link wheel_right -->
+  <link name="wheel_right">
+    <inertial>
+      <origin xyz="-0 -0 -0.0163448" rpy="0 0 0"/>
+      <mass value="0.0653752"/>
+      <inertia ixx="2.83427e-05" ixy="0" ixz="0" iyy="2.8342e-05" iyz="0" izz="4.80093e-05"/>
+    </inertial>
+    <!-- Part wheel_right -->
+    <visual>
+      <origin xyz="0 -0 -0.02994" rpy="3.14159 -0 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/wheel_right.stl"/>
+      </geometry>
+      <material name="wheel_right_material">
+        <color rgba="0.980392 0.713725 0.00392157 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 -0 -0.02994" rpy="3.14159 -0 0"/>
+      <geometry>
+        <mesh filename="package://mote_description/description/mote/assets/wheel_right.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- Joint from robot_body to wheel_right -->
+  <joint name="right_wheel" type="continuous">
+    <origin xyz="2.669e-09 -0.0502679 0.0325" rpy="1.5708 1.5675 3.14159"/>
+    <parent link="robot_body"/>
+    <child link="wheel_right"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10"/>
+  </joint>
+  <!-- Joint from base_link to robot_body -->
+  <joint name="base_link_to_robot_body" type="fixed">
+    <origin xyz="0 0 0" rpy="0 -0 0"/>
+    <parent link="base_link"/>
+    <child link="robot_body"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10"/>
+  </joint>
 </robot>

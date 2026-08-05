@@ -1,0 +1,13 @@
+{
+    "configuration": "default",
+    "documentId": "1587a90b12bee427526d37dc",
+    "documentMicroversion": "0d01929a33fe02435b9c74f5",
+    "elementId": "534e433e1a4991ae8698ca7c",
+    "fullConfiguration": "default",
+    "id": "MurjbaFIIEvaLmZ55",
+    "isStandardContent": false,
+    "name": "Lidar stand <1>",
+    "partId": "RuBD",
+    "suppressed": false,
+    "type": "Part"
+}
