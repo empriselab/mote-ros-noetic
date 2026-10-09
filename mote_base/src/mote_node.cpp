@@ -54,6 +54,9 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
   ros::Timer keepalive_timer_;
   std::string laser_frame_;
   std::string imu_frame_;
+  double gyro_bias_x_ = 0.0;
+  double gyro_bias_y_ = 0.0;
+  double gyro_bias_z_ = 0.0;
 
   ScanRasterizer scan_rasterizer_;
   ros::Time scan_accum_stamp_;
@@ -180,9 +183,9 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
     msg.linear_acceleration.y = m.accel_y;
     msg.linear_acceleration.z = m.accel_z;
 
-    msg.angular_velocity.x = m.gyro_x;
-    msg.angular_velocity.y = m.gyro_y;
-    msg.angular_velocity.z = m.gyro_z;
+    msg.angular_velocity.x = m.gyro_x - gyro_bias_x_;
+    msg.angular_velocity.y = m.gyro_y - gyro_bias_y_;
+    msg.angular_velocity.z = m.gyro_z - gyro_bias_z_;
 
     imu_pub_.publish(msg);
   }
@@ -212,6 +215,9 @@ class MoteHardwareInterface : public hardware_interface::RobotHW {
     }
     robot_hw_nh.param<std::string>("laser_frame", laser_frame_, "lidar");
     robot_hw_nh.param<std::string>("imu_frame", imu_frame_, "imu");
+    robot_hw_nh.param<double>("gyro_bias_x", gyro_bias_x_, 0.0);
+    robot_hw_nh.param<double>("gyro_bias_y", gyro_bias_y_, 0.0);
+    robot_hw_nh.param<double>("gyro_bias_z", gyro_bias_z_, 0.0);
 
     // Register hardware interfaces for left_wheel and right_wheel.
     for (std::size_t i{0}; i < kJointNames.size(); ++i) {
