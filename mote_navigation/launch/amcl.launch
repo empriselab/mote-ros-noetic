@@ -23,11 +23,11 @@
     <param name="initial_pose_a"            value="$(arg initial_pose_a)"/>
     <param name="initial_cov_xx"            value="2"/>
     <param name="initial_cov_yy"            value="2"/>
-    <param name="initial_cov_aa"            value="40"/>
+    <param name="initial_cov_aa"            value="9.8696044"/>
     <param name="gui_publish_rate"          value="50.0"/>
 
     <remap from="scan"                      to="$(arg scan_topic)"/>
-    <param name="laser_max_range"           value="8.0"/>
+    <param name="laser_max_range"           value="12.0"/>
     <param name="laser_max_beams"           value="360"/>
     <param name="laser_z_hit"               value="0.5"/>
     <param name="laser_z_short"             value="0.05"/>

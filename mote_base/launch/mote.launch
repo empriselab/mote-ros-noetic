@@ -20,6 +20,11 @@
   <arg name="imu_y"     default="0.0" />
   <arg name="imu_z"     default="0.0" />
 
+  <!-- IMU biases -->
+  <arg name="gyro_bias_x"     default="0.0" />
+  <arg name="gyro_bias_y"     default="0.0" />
+  <arg name="gyro_bias_z"     default="0.0" />
+
   <!-- Load controller configuration -->
   <rosparam file="$(find mote_base)/config/controllers.yaml" command="load" />
 
@@ -32,6 +37,10 @@
     <param name="robot_ip"    value="$(arg robot_ip)" />
     <param name="laser_frame" value="$(arg laser_frame)" />
     <param name="imu_frame"   value="$(arg imu_frame)" />
+    
+    <param name="gyro_bias_x" value="$(arg gyro_bias_x)" />
+    <param name="gyro_bias_y" value="$(arg gyro_bias_y)" />
+    <param name="gyro_bias_z" value="$(arg gyro_bias_z)" />
   </node>
 
   <!-- Spawn the diff_drive_controller via controller_manager -->
