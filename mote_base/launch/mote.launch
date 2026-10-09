@@ -18,6 +18,7 @@
   <arg name="laser_yaw" default="1.5705" />
   <arg name="imu_x"     default="0.0" />
   <arg name="imu_y"     default="0.0" />
+  <arg name="imu_z"     default="0.0" />
 
   <!-- IMU biases -->
   <arg name="gyro_bias_x"     default="0.0" />
