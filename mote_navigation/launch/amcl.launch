@@ -23,7 +23,7 @@
     <param name="initial_pose_a"            value="$(arg initial_pose_a)"/>
     <param name="initial_cov_xx"            value="2"/>
     <param name="initial_cov_yy"            value="2"/>
-    <param name="initial_cov_aa"            value="9.8696044"/>
+    <param name="initial_cov_aa"            value="40"/>
     <param name="gui_publish_rate"          value="50.0"/>
 
     <remap from="scan"                      to="$(arg scan_topic)"/>
