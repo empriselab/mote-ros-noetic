@@ -1,6 +1,10 @@
 # docker build -t mote-ros-noetic .
 FROM ros:noetic-ros-base
 
+# rerun failed package installs if needed
+RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "120";\n' \
+    > /etc/apt/apt.conf.d/80-retries
+
 # Install bare build tools (rosdep handles all ROS/package deps below).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
